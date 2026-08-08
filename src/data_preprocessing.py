@@ -29,6 +29,18 @@ def validate_data(returns):
     Returns:
     - dict with validation results
     """
+    # Handle empty DataFrame
+    if returns.empty or returns.shape[0] == 0:
+        print("WARNING: Returns data is empty. Skipping validation.")
+        return {
+            'n_assets': 0,
+            'n_days': 0,
+            'n_missing': 0,
+            'zero_var_assets': [],
+            'n_inf': 0,
+            'valid': False
+        }
+    
     n_assets = returns.shape[1]
     n_days = returns.shape[0]
     
@@ -39,8 +51,16 @@ def validate_data(returns):
     variances = returns.var()
     zero_var_assets = variances[variances == 0].index.tolist()
     
-    # Check for infinite values
-    n_inf = np.isinf(returns.values).sum()
+    # Check for infinite values (convert to float first)
+    try:
+        n_inf = np.isinf(returns.values).sum()
+    except TypeError:
+        # If values are not numeric, try converting
+        try:
+            returns_numeric = returns.astype(float)
+            n_inf = np.isinf(returns_numeric.values).sum()
+        except:
+            n_inf = 0
     
     results = {
         'n_assets': n_assets,
@@ -48,7 +68,7 @@ def validate_data(returns):
         'n_missing': n_missing,
         'zero_var_assets': zero_var_assets,
         'n_inf': n_inf,
-        'valid': (n_missing == 0 and len(zero_var_assets) == 0 and n_inf == 0)
+        'valid': (n_missing == 0 and len(zero_var_assets) == 0 and n_inf == 0 and n_days > 0 and n_assets > 0)
     }
     
     print(f"Validation: {results}")
@@ -65,11 +85,17 @@ def clean_returns(returns):
     Returns:
     - pd.DataFrame of cleaned returns
     """
+    # Handle empty DataFrame
+    if returns.empty:
+        print("WARNING: Returns data is empty. Nothing to clean.")
+        return returns
+    
     # Remove any rows with missing values
     returns = returns.dropna()
     
-    # Remove any columns with zero variance
-    returns = returns.loc[:, returns.var() > 0]
+    # Remove any columns with zero variance (if any columns remain)
+    if not returns.empty and returns.shape[1] > 0:
+        returns = returns.loc[:, returns.var() > 0]
     
     # Replace infinite with NaN and drop
     returns = returns.replace([np.inf, -np.inf], np.nan).dropna()
@@ -89,6 +115,11 @@ def align_vix_with_returns(returns, vix):
     Returns:
     - pd.Series of VIX aligned to returns index
     """
+    # Handle empty returns
+    if returns.empty:
+        print("WARNING: Returns data is empty. Cannot align VIX.")
+        return returns, pd.Series()
+    
     # Reindex VIX to returns index, forward fill missing values
     vix_aligned = vix.reindex(returns.index).ffill()
     
@@ -97,8 +128,12 @@ def align_vix_with_returns(returns, vix):
         print(f"Warning: {vix_aligned.isnull().sum()} missing VIX values remain")
         # Drop rows where VIX is missing
         valid_mask = vix_aligned.notna()
-        vix_aligned = vix_aligned[valid_mask]
-        returns = returns[valid_mask]
+        if valid_mask.any():
+            vix_aligned = vix_aligned[valid_mask]
+            returns = returns[valid_mask]
+        else:
+            print("WARNING: No valid VIX data. Using empty returns.")
+            return pd.DataFrame(), pd.Series()
     
     print(f"VIX aligned. Shape: {vix_aligned.shape}")
     
