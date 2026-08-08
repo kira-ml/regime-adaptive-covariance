@@ -143,6 +143,19 @@ def main():
     print("\n" + "=" * 60)
     print("PIPELINE COMPLETE")
     print("=" * 60)
+    
+    # Check if we have data before printing summary
+    if len(lambdas_df) == 0:
+        print("\nWARNING: No windows were processed. No data available.")
+        print("This is likely due to Yahoo Finance not returning data.")
+        print("Please check:")
+        print("  1. Your internet connection")
+        print("  2. Try with a smaller date range (e.g., START_DATE = '2020-01-01')")
+        print("  3. Try a single ticker: TICKERS = ['AAPL']")
+        print("  4. The available columns printed above show what data was returned")
+        print("\n" + "=" * 60)
+        return
+    
     print(f"\nSummary:")
     print(f"  Total windows processed: {len(lambdas_df)}")
     print(f"  Mean optimal lambda: {lambdas_df['lambda_opt'].mean():.4f}")

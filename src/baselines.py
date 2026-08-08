@@ -19,6 +19,11 @@ def constant_shrinkage(lambdas_df):
     Returns:
     - float: constant lambda
     """
+    # Handle empty DataFrame
+    if lambdas_df.empty or 'lambda_opt' not in lambdas_df.columns:
+        print("WARNING: No lambda data available. Using default lambda = 0.5")
+        return 0.5
+    
     lambda_const = lambdas_df['lambda_opt'].mean()
     print(f"Constant shrinkage lambda: {lambda_const:.4f}")
     return lambda_const
@@ -36,6 +41,17 @@ def evaluate_constant_baseline(window_data, lambdas_df, lambda_const):
     Returns:
     - dict with metrics
     """
+    # Handle empty window_data
+    if not window_data or len(window_data) == 0:
+        print("WARNING: No window data available. Returning empty metrics.")
+        return {
+            'mean_frobenius': np.nan,
+            'std_frobenius': np.nan,
+            'lambda_const': lambda_const if not np.isnan(lambda_const) else 0.5,
+            'optimal_mean_frobenius': np.nan,
+            'improvement_pct': np.nan
+        }
+    
     n = window_data[0]['S'].shape[0]
     I = np.eye(n)
     
@@ -89,6 +105,16 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     Returns:
     - dict with metrics and optimal threshold
     """
+    # Handle empty data
+    if not window_data or len(window_data) == 0:
+        print("WARNING: No window data available. Returning empty VIX metrics.")
+        return {
+            'mean_frobenius': np.nan,
+            'std_frobenius': np.nan,
+            'best_threshold': np.nan,
+            'n_windows': 0
+        }
+    
     n = window_data[0]['S'].shape[0]
     I = np.eye(n)
     
@@ -219,6 +245,16 @@ def rolling_average_baseline(window_data, lambdas_df, window_size=10):
     Returns:
     - dict with metrics
     """
+    # Handle empty data
+    if not window_data or len(window_data) == 0:
+        print("WARNING: No window data available. Returning empty rolling metrics.")
+        return {
+            'mean_frobenius': np.nan,
+            'std_frobenius': np.nan,
+            'rolling_window': window_size,
+            'n_windows': 0
+        }
+    
     n = window_data[0]['S'].shape[0]
     I = np.eye(n)
     

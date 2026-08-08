@@ -63,6 +63,12 @@ def compute_optimal_lambdas(window_data, lambda_grid):
     """
     import pandas as pd
     
+    # Handle empty window_data
+    if not window_data or len(window_data) == 0:
+        print("WARNING: No window data available. Returning empty DataFrame.")
+        return pd.DataFrame(columns=['window_id', 'lambda_opt', 'min_frobenius', 
+                                      'train_start', 'train_end', 'test_start', 'test_end'])
+    
     results = []
     
     for idx, w in enumerate(window_data):
@@ -83,7 +89,10 @@ def compute_optimal_lambdas(window_data, lambda_grid):
     
     df = pd.DataFrame(results)
     print(f"Optimal lambdas computed for {len(df)} windows")
-    print(f"Lambda range: {df['lambda_opt'].min():.3f} to {df['lambda_opt'].max():.3f}")
-    print(f"Mean lambda: {df['lambda_opt'].mean():.3f}")
+    
+    # Only print stats if we have data
+    if len(df) > 0:
+        print(f"Lambda range: {df['lambda_opt'].min():.3f} to {df['lambda_opt'].max():.3f}")
+        print(f"Mean lambda: {df['lambda_opt'].mean():.3f}")
     
     return df
