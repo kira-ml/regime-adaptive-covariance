@@ -117,4 +117,50 @@ def main():
     # Baseline 3: Rolling Average
     rolling_metrics = rolling_average_baseline(window_data, lambdas_df, window_size=10)
     
-    # Baseline 
+    # ============================================
+    # 6. EVALUATION & VISUALIZATION
+    # ============================================
+    print("\n" + "=" * 60)
+    print("STEP 6: Evaluation & Visualization")
+    print("=" * 60)
+    
+    # Plot 1: Lambda over time
+    plot_lambdas_over_time(lambdas_df, save_path='results/figures/lambda_over_time.png')
+    
+    # Plot 2: Frobenius comparison
+    plot_frobenius_comparison(lambdas_df, baseline_metrics, 
+                              save_path='results/figures/frobenius_comparison.png')
+    
+    # Plot 3: Feature correlation
+    plot_feature_correlation(features_df, save_path='results/figures/feature_correlation.png')
+    
+    # Save metrics
+    save_metrics(baseline_metrics, lambdas_df, 'results/metrics.csv')
+    
+    # ============================================
+    # SUMMARY
+    # ============================================
+    print("\n" + "=" * 60)
+    print("PIPELINE COMPLETE")
+    print("=" * 60)
+    print(f"\nSummary:")
+    print(f"  Total windows processed: {len(lambdas_df)}")
+    print(f"  Mean optimal lambda: {lambdas_df['lambda_opt'].mean():.4f}")
+    print(f"  Constant shrinkage lambda: {lambda_const:.4f}")
+    print(f"  Constant baseline mean Frobenius: {baseline_metrics['mean_frobenius']:.4f}")
+    print(f"  Optimal mean Frobenius: {baseline_metrics['optimal_mean_frobenius']:.4f}")
+    print(f"  Relative difference: {baseline_metrics['improvement_pct']:.1f}%")
+    print(f"  VIX threshold baseline mean Frobenius: {vix_metrics['mean_frobenius']:.4f}")
+    print(f"  Rolling average baseline mean Frobenius: {rolling_metrics['mean_frobenius']:.4f}")
+    print("\nResults saved to:")
+    print("  - data/processed/optimal_lambdas.csv")
+    print("  - data/processed/regime_features.csv")
+    print("  - results/metrics.csv")
+    print("  - results/figures/lambda_over_time.png")
+    print("  - results/figures/frobenius_comparison.png")
+    print("  - results/figures/feature_correlation.png")
+    print("\n" + "=" * 60)
+
+
+if __name__ == "__main__":
+    main()
