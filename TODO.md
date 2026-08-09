@@ -173,6 +173,78 @@ Created modular pipeline with 7 Python modules:
 
 ---
 
+### Planned: Baseline-First Feature Engineering (Next Session)
+
+#### Goal
+Test feature sets systematically — baseline first, advanced only if needed.
+
+#### Feature Sets to Test
+
+**Baseline Sets (Test First):**
+| Set | Features | Rationale |
+|-----|----------|-----------|
+| **Set 1: VIX-Only (1)** | `vix_level` | Simplest regime indicator, strongest correlation (0.346) |
+| **Set 2: Vol+Corr (3)** | `vix_level`, `realized_vol`, `avg_correlation` | Market stress + correlation structure |
+| **Set 3: Market (6)** | `vix_level`, `realized_vol`, `avg_correlation`, `cross_sectional_dispersion`, `vix_percentile`, `max_drawdown` | All market regime features |
+
+**Advanced Sets (Test Only if Baselines Underperform):**
+| Set | Features | Rationale |
+|-----|----------|-----------|
+| **Set 4: Covariance (4)** | `condition_number`, `trace`, `avg_eigenvalue`, `avg_correlation` | Covariance matrix properties |
+| **Set 5: All (10)** | All 10 features | Full information set |
+
+#### Implementation Plan
+
+1. **Create `src/feature_engineering.py`**
+   - `FeatureSet` class with all sets defined
+   - `FeatureEngineer` class for evaluation
+   - `prepare_features()` - X, y creation with scaling
+   - `evaluate_feature_sets()` - Test all sets on test data
+   - `compare_feature_sets()` - RMSE, R² comparison
+   - `get_best_feature_set()` - Return best performing set
+
+2. **Add to `main.py`**
+   - Initialize feature engineer
+   - Evaluate all sets on test data
+   - Print comparison table
+   - Save results to CSV
+   - Generate comparison plot
+
+3. **Evaluation Criteria**
+   - **RMSE** (lower is better) - Primary metric
+   - **R²** (higher is better) - Secondary metric
+   - **Improvement threshold**: >5% improvement = advanced sets add value
+
+#### Expected Output
+
+```
+=== Feature Set Comparison ===
+feature_set                    n_features     rmse       r2
+Baseline VIX-Only (1)          1              0.0008     0.120
+Baseline Vol+Corr (3)          3              0.0007     0.230
+Baseline Market (6)            6              0.0007     0.250
+Advanced Covariance (4)        4              0.0008     0.100
+Advanced All (10)              10             0.0007     0.260
+
+🏆 Best Feature Set: Baseline Market (6)
+   RMSE: 0.0007
+   R²: 0.2500
+```
+
+#### Key Questions to Answer
+- Do baseline sets provide good predictive power?
+- Do advanced features add value (>5% improvement)?
+- Which features are most important for predicting λ?
+- Does test-set RMSE confirm correlation analysis?
+
+#### Why This Matters
+- **Defensible**: Baseline-first approach shows you didn't over-engineer
+- **Statistical**: Out-of-sample comparison on test set
+- **Practical**: Clear answer on what features to use for Elastic Net
+- **Fair**: All sets evaluated on same test data
+
+---
+
 ### Updated TODOs (Next Session)
 
 #### Priority 1: Expand to 50 Stocks
@@ -190,14 +262,23 @@ Created modular pipeline with 7 Python modules:
 - [ ] Compare performance vs Constant and Ledoit-Wolf individually
 - [ ] Evaluate if simple rule provides best of both worlds
 
-#### Priority 4: Elastic Net (Week 2)
-- [ ] Create feature matrix X (10 regime features)
+#### Priority 4: Baseline-First Feature Engineering
+- [ ] Create `src/feature_engineering.py` with 3 baseline + 2 advanced sets
+- [ ] Add feature engineering section to `main.py`
+- [ ] Evaluate all feature sets on test data
+- [ ] Compare RMSE and R² across sets
+- [ ] Determine if advanced sets add value (>5% improvement)
+- [ ] Save results and plots
+
+#### Priority 5: Elastic Net (Week 2)
+- [ ] Use best feature set from feature engineering
+- [ ] Create feature matrix X (selected features)
 - [ ] Create target vector y (optimal λ)
 - [ ] Standardize features using training set statistics
 - [ ] Implement Elastic Net with time-series cross-validation
 - [ ] Compare to baselines on test set
 
-#### Priority 5: Documentation
+#### Priority 6: Documentation
 - [ ] Update README.md with Week 1 findings
 - [ ] Add comments to code where needed
 - [ ] Begin formal research paper draft
@@ -221,7 +302,46 @@ Created modular pipeline with 7 Python modules:
 - Does the COVID effect hold with 50 stocks?
 - Is the 3.17% improvement statistically significant?
 - Can a simple VIX > 30 rule beat Constant overall?
+- Which feature set works best for Elastic Net?
 - Will Elastic Net capture the regime signal better than Ledoit-Wolf?
+
+---
+
+### Commands for Feature Engineering Session
+
+```powershell
+# Activate environment
+.\venv\Scripts\Activate
+
+# Create feature engineering module
+New-Item -Path src\feature_engineering.py -ItemType File
+
+# Update main.py with feature engineering section
+
+# Run pipeline
+python main.py
+
+# Check results
+cat results/feature_set_comparison.csv
+
+# Git status and commit
+git status
+git add .
+git commit -m "Add baseline-first feature engineering with 3 baseline and 2 advanced sets"
+git push
+```
+
+---
+
+### Decision Points
+
+| Decision | Criteria | Action |
+|----------|----------|--------|
+| **Universe Size** | If 50 stocks shows similar results | Stick with 20 stocks for faster iteration |
+| **Feature Set** | If baseline sets have R² > 0.2 | Use best baseline set for Elastic Net |
+| **Feature Set** | If advanced sets show >5% improvement | Use best advanced set for Elastic Net |
+| **Statistical Test** | If p < 0.05 for Ledoit-Wolf vs Constant | Include in paper as significant finding |
+| **Regime-Switch** | If VIX > 30 rule beats Constant | Add as practical recommendation |
 
 ---
 
@@ -235,6 +355,17 @@ Created modular pipeline with 7 Python modules:
 
 ---
 
-**Last Updated**: August 10, 2026
+### Contact / Issues
+
+If something breaks, check:
+1. Yahoo Finance API changes
+2. Missing data for specific tickers
+3. Date ranges with no trading days
+4. Memory usage with large asset universes
+5. Feature engineering import errors
+
+---
+
+**Last Updated**: August 10, 2026 - 2:00 AM
 **Project Status**: ✅ Week 1 Complete — Sub-Period Analysis Reveals Key Finding
-**Next Milestone**: Week 2 — 50 Stocks + Statistical Tests
+**Next Milestone**: Week 2 — Feature Engineering + 50 Stocks + Statistical Tests
