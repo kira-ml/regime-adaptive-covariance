@@ -156,29 +156,42 @@ def main():
 
 
     # ============================================
-    # PORTFOLIO EVALUATION
+    # PORTFOLIO EVALUATION (TEST SET ONLY)
     # ============================================
     print("\n" + "=" * 60)
-    print("STEP 6: Portfolio Evaluation")
+    print("STEP 6: Portfolio Evaluation (Test Set Only)")
     print("=" * 60)
     
     from src.portfolio import evaluate_portfolio_performance
     
-    # Define methods to evaluate
-    methods = {
-        'Optimal': (None, {}),
-        'Constant': (None, {'lambda_const': lambda_const}),
-        'VIX Threshold': (None, {}),
-        'Rolling Average': (None, {}),
-        'Ledoit-Wolf': (None, {})
-    }
+    # Get test indices
+    test_indices = split['test']
     
-    portfolio_results = evaluate_portfolio_performance(window_data, lambdas_df, methods)
-    print(portfolio_results.to_string(index=False))
+    if len(test_indices) > 0:
+        # Subset to test set only
+        window_data_test = [window_data[i] for i in test_indices]
+        lambdas_test = lambdas_df.iloc[test_indices]
+        
+        # Define methods to evaluate (using test set only)
+        methods = {
+            'Optimal': (None, {}),
+            'Constant': (None, {'lambda_const': lambda_const}),
+            'VIX Threshold': (None, {}),
+            'Rolling Average': (None, {}),
+            'Ledoit-Wolf': (None, {})
+        }
+        
+        portfolio_results = evaluate_portfolio_performance(window_data_test, lambdas_test, methods)
+        print(portfolio_results.to_string(index=False))
+        
+        # Save portfolio results (test set only)
+        portfolio_results.to_csv('results/portfolio_metrics_test.csv', index=False)
+        print("Saved portfolio metrics (test set) to: results/portfolio_metrics_test.csv")
+    else:
+        print("WARNING: No test windows available for portfolio evaluation.")
+        portfolio_results = None
     
-    # Save portfolio results
-    portfolio_results.to_csv('results/portfolio_metrics.csv', index=False)
-    print("Saved portfolio metrics to: results/portfolio_metrics.csv")
+
     
     # ============================================
     # 6. EVALUATION & VISUALIZATION
