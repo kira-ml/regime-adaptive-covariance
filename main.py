@@ -139,7 +139,8 @@ def main():
         # Baseline 2: VIX Threshold Rule (trained on training set)
         features_train = [features[i] for i in train_indices]
         lambdas_train = lambdas_df.iloc[train_indices]
-        vix_metrics = vix_threshold_baseline(window_data, lambdas_train, features_train, LAMBDA_GRID)
+        # Pass full lambdas for evaluation, training lambdas for threshold search
+        vix_metrics = vix_threshold_baseline(window_data, lambdas_train, lambdas_df, features_train, features, LAMBDA_GRID)
     else:
         print("WARNING: No training windows found. Using all data.")
         lambda_const = constant_shrinkage(lambdas_df)

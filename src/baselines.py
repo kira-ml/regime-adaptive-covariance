@@ -92,7 +92,7 @@ def evaluate_constant_baseline(window_data, lambdas_df, lambda_const):
     return metrics
 
 
-def vix_threshold_baseline(window_data, lambdas_df, vix_features_train, vix_features_all, lambda_grid):
+def vix_threshold_baseline(window_data, lambdas_df_train, lambdas_df_all, vix_features_train, vix_features_all, lambda_grid):
     """
     VIX threshold rule baseline with 3 regimes (low/medium/high).
     
@@ -124,19 +124,18 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features_train, vix_feat
     vix_levels_train = np.array([f['vix_level'] for f in vix_features_train])
     
     # Extract optimal lambdas for training data
-    if len(lambdas_df) > len(vix_levels_train):
-        # We're using a subset of windows (e.g., training set only)
+    if len(lambdas_df_train) > len(vix_levels_train):
         window_ids = [f['window_id'] for f in vix_features_train]
-        optimal_lambdas_train = lambdas_df[lambdas_df['window_id'].isin(window_ids)]['lambda_opt'].values
+        optimal_lambdas_train = lambdas_df_train[lambdas_df_train['window_id'].isin(window_ids)]['lambda_opt'].values
     else:
-        optimal_lambdas_train = lambdas_df['lambda_opt'].values
+        optimal_lambdas_train = lambdas_df_train['lambda_opt'].values
     
     # Verify lengths match
     if len(optimal_lambdas_train) != len(vix_levels_train):
         raise ValueError(f"Length mismatch: vix_levels_train={len(vix_levels_train)}, optimal_lambdas_train={len(optimal_lambdas_train)}")
     
     # Get full optimal lambdas for all windows
-    full_optimal_lambdas = lambdas_df['lambda_opt'].values
+    full_optimal_lambdas = lambdas_df_all['lambda_opt'].values
     
     # Search for optimal two thresholds using grid search on training data
     percentiles_low = np.linspace(15, 45, 7)
