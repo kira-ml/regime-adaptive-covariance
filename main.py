@@ -150,6 +150,10 @@ def main():
     # Baseline 3: Rolling Average (still uses all data for now)
     rolling_metrics = rolling_average_baseline(window_data, lambdas_df, window_size=10)
     
+    # Baseline 4: Ledoit-Wolf
+    from src.baselines import ledoit_wolf_baseline
+    lw_metrics = ledoit_wolf_baseline(window_data)
+    
     # ============================================
     # 6. EVALUATION & VISUALIZATION
     # ============================================
@@ -198,6 +202,7 @@ def main():
     print(f"  Relative difference: {baseline_metrics['improvement_pct']:.1f}%")
     print(f"  VIX threshold baseline mean Frobenius: {vix_metrics['mean_frobenius']:.4f}")
     print(f"  Rolling average baseline mean Frobenius: {rolling_metrics['mean_frobenius']:.4f}")
+    print(f"  Ledoit-Wolf baseline mean Frobenius: {lw_metrics['mean_frobenius']:.4f}")
     print("\nResults saved to:")
     print("  - data/processed/optimal_lambdas.csv")
     print("  - data/processed/regime_features.csv")
