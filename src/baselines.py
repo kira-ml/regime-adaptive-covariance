@@ -94,7 +94,7 @@ def evaluate_constant_baseline(window_data, lambdas_df, lambda_const):
 
 def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     """
-    VIX threshold rule baseline.
+    VIX threshold rule baseline with 3 regimes (low/medium/high).
     
     Parameters:
     - window_data: list of dicts from compute_covariance_matrices()
@@ -103,7 +103,7 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     - lambda_grid: array of lambda values
     
     Returns:
-    - dict with metrics and optimal threshold
+    - dict with metrics and optimal thresholds
     """
     # Handle empty data
     if not window_data or len(window_data) == 0:
@@ -111,7 +111,8 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
         return {
             'mean_frobenius': np.nan,
             'std_frobenius': np.nan,
-            'best_threshold': np.nan,
+            'threshold_low': np.nan,
+            'threshold_high': np.nan,
             'n_windows': 0
         }
     
@@ -122,41 +123,60 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     vix_levels = np.array([f['vix_level'] for f in vix_features])
     optimal_lambdas = lambdas_df['lambda_opt'].values
     
-    # Find optimal threshold on training set
-    # For simplicity, use percentiles of VIX distribution
-    percentiles = np.linspace(10, 90, 17)  # 10% to 90% in 5% steps
-    best_threshold = None
+    # Search for optimal two thresholds using grid search
+    # Try all combinations of VIX percentiles (15th to 85th percentile)
+    percentiles_low = np.linspace(15, 45, 7)   # 15%, 20%, 25%, 30%, 35%, 40%, 45%
+    percentiles_high = np.linspace(55, 85, 7)  # 55%, 60%, 65%, 70%, 75%, 80%, 85%
+    
+    best_threshold_low = None
+    best_threshold_high = None
     best_frobenius = np.inf
     
-    for pct in percentiles:
-        threshold = np.percentile(vix_levels, pct)
-        
-        # Compute lambda for each window based on threshold
-        lambda_pred = np.where(vix_levels < threshold, 
-                               optimal_lambdas[vix_levels < threshold].mean(),
-                               optimal_lambdas[vix_levels >= threshold].mean())
-        
-        # Compute Frobenius distances
-        distances = []
-        for idx, w in enumerate(window_data):
-            S = w['S']
-            realized = w['realized']
+    for pct_low in percentiles_low:
+        for pct_high in percentiles_high:
+            if pct_low >= pct_high:
+                continue
+                
+            threshold_low = np.percentile(vix_levels, pct_low)
+            threshold_high = np.percentile(vix_levels, pct_high)
             
-            lam = lambda_pred[idx]
-            S_est = (1 - lam) * S + lam * I
-            dist = frobenius_distance(S_est, realized)
-            distances.append(dist)
-        
-        mean_dist = np.mean(distances)
-        
-        if mean_dist < best_frobenius:
-            best_frobenius = mean_dist
-            best_threshold = threshold
+            # Assign lambda based on 3 regimes
+            lambda_pred = np.zeros_like(vix_levels)
+            for i, vix in enumerate(vix_levels):
+                if vix < threshold_low:
+                    lambda_pred[i] = optimal_lambdas[vix_levels < threshold_low].mean()
+                elif vix < threshold_high:
+                    lambda_pred[i] = optimal_lambdas[(vix_levels >= threshold_low) & (vix_levels < threshold_high)].mean()
+                else:
+                    lambda_pred[i] = optimal_lambdas[vix_levels >= threshold_high].mean()
+            
+            # Compute Frobenius distances
+            distances = []
+            for idx, w in enumerate(window_data):
+                S = w['S']
+                realized = w['realized']
+                
+                lam = lambda_pred[idx]
+                S_est = (1 - lam) * S + lam * I
+                dist = frobenius_distance(S_est, realized)
+                distances.append(dist)
+            
+            mean_dist = np.mean(distances)
+            
+            if mean_dist < best_frobenius:
+                best_frobenius = mean_dist
+                best_threshold_low = threshold_low
+                best_threshold_high = threshold_high
     
-    # Apply best threshold to all windows
-    lambda_pred = np.where(vix_levels < best_threshold,
-                           optimal_lambdas[vix_levels < best_threshold].mean(),
-                           optimal_lambdas[vix_levels >= best_threshold].mean())
+    # Apply best thresholds to all windows
+    lambda_pred = np.zeros_like(vix_levels)
+    for i, vix in enumerate(vix_levels):
+        if vix < best_threshold_low:
+            lambda_pred[i] = optimal_lambdas[vix_levels < best_threshold_low].mean()
+        elif vix < best_threshold_high:
+            lambda_pred[i] = optimal_lambdas[(vix_levels >= best_threshold_low) & (vix_levels < best_threshold_high)].mean()
+        else:
+            lambda_pred[i] = optimal_lambdas[vix_levels >= best_threshold_high].mean()
     
     distances = []
     for idx, w in enumerate(window_data):
@@ -174,12 +194,13 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     metrics = {
         'mean_frobenius': mean_dist,
         'std_frobenius': std_dist,
-        'best_threshold': best_threshold,
+        'threshold_low': best_threshold_low,
+        'threshold_high': best_threshold_high,
         'n_windows': len(window_data)
     }
     
-    print("\n=== VIX Threshold Baseline ===")
-    print(f"Optimal VIX threshold: {best_threshold:.2f}")
+    print("\n=== VIX Threshold Baseline (3-Regime) ===")
+    print(f"Optimal VIX thresholds: Low = {best_threshold_low:.2f}, High = {best_threshold_high:.2f}")
     print(f"Mean Frobenius distance: {mean_dist:.4f} (+/- {std_dist:.4f})")
     
     return metrics
