@@ -209,9 +209,8 @@ def main():
         'Ledoit-Wolf': (None, {})
     }
     
-    # Evaluate on sub-periods
     sub_period_results = evaluate_sub_periods(
-        window_data, lambdas_df, features, split, methods
+        window_data, lambdas_df, windows, returns, split, methods
     )
     
     if not sub_period_results.empty:
@@ -234,7 +233,7 @@ def main():
         print("No sub-period results available.")
 
 
-        
+
     
     # ============================================
     # 6. EVALUATION & VISUALIZATION

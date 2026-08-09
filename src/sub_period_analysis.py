@@ -52,14 +52,15 @@ def filter_windows_by_date(windows, returns, start_date, end_date):
     return indices
 
 
-def evaluate_sub_periods(window_data, lambdas_df, features, split_indices, methods):
+def evaluate_sub_periods(window_data, lambdas_df, windows, returns, split_indices, methods):
     """
     Evaluate methods on each sub-period.
     
     Parameters:
-    - window_data: list of dicts
+    - window_data: list of dicts from compute_covariance_matrices()
     - lambdas_df: DataFrame with optimal lambdas
-    - features: list of dicts with regime features
+    - windows: list of window dicts from create_windows()
+    - returns: pd.DataFrame with returns index
     - split_indices: dict with 'train', 'val', 'test' indices
     - methods: dict of method_name -> (lambda_func, kwargs)
     
@@ -82,13 +83,13 @@ def evaluate_sub_periods(window_data, lambdas_df, features, split_indices, metho
     
     for period_name, (start_date, end_date) in sub_periods.items():
         # Find windows in this sub-period
-        # We need to filter test windows by date
         period_indices = []
         for idx in test_indices:
-            w = window_data[idx]
+            # Use the windows list (not window_data) to get train_end
+            w = windows[idx]
             train_end_idx = w['train_end']
-            # Use the window end date (last day of training)
-            window_date = w['train_dates'][1]  # train_end date
+            # Use the returns index to get the date
+            window_date = returns.index[train_end_idx - 1]  # Last day of training window
             
             if start_date <= str(window_date) <= end_date:
                 period_indices.append(idx)
