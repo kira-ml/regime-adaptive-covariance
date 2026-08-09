@@ -152,3 +152,52 @@ def compute_regime_features(returns, vix, windows):
     
     print(f"Computed regime features for {len(features)} windows")
     return features
+
+
+
+
+
+def split_windows_by_date(windows, returns, train_end='2015-12-31', val_end='2019-12-31'):
+    """
+    Split windows chronologically into train/validation/test sets.
+    
+    Parameters:
+    - windows: list of window dicts from create_windows()
+    - returns: pd.DataFrame with returns index
+    - train_end: str, date for end of training period
+    - val_end: str, date for end of validation period
+    
+    Returns:
+    - dict with 'train', 'val', 'test' indices
+    """
+    import pandas as pd
+    
+    train_indices = []
+    val_indices = []
+    test_indices = []
+    
+    train_end_date = pd.to_datetime(train_end)
+    val_end_date = pd.to_datetime(val_end)
+    
+    for idx, w in enumerate(windows):
+        # Get the end date of the training window
+        train_end_idx = w['train_end']
+        window_end_date = returns.index[train_end_idx - 1]  # Last day of training window
+        
+        if window_end_date <= train_end_date:
+            train_indices.append(idx)
+        elif window_end_date <= val_end_date:
+            val_indices.append(idx)
+        else:
+            test_indices.append(idx)
+    
+    print(f"Split windows:")
+    print(f"  Training: {len(train_indices)} windows (through {train_end})")
+    print(f"  Validation: {len(val_indices)} windows ({train_end} to {val_end})")
+    print(f"  Test: {len(test_indices)} windows (after {val_end})")
+    
+    return {
+        'train': train_indices,
+        'val': val_indices,
+        'test': test_indices
+    }

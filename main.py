@@ -120,14 +120,32 @@ def main():
     print("STEP 5: Baseline Models")
     print("=" * 60)
     
-    # Baseline 1: Constant Shrinkage
-    lambda_const = constant_shrinkage(lambdas_df)
-    baseline_metrics = evaluate_constant_baseline(window_data, lambdas_df, lambda_const)
+    # Split windows chronologically
+    from src.rolling_windows import split_windows_by_date
+    split = split_windows_by_date(windows, returns, train_end='2015-12-31', val_end='2019-12-31')
     
-    # Baseline 2: VIX Threshold Rule
-    vix_metrics = vix_threshold_baseline(window_data, lambdas_df, features, LAMBDA_GRID)
+    # Get training indices
+    train_indices = split['train']
     
-    # Baseline 3: Rolling Average
+    if len(train_indices) > 0:
+        # Subset data to training set only
+        lambdas_train = lambdas_df.iloc[train_indices]
+        window_data_train = [window_data[i] for i in train_indices]
+        
+        # Baseline 1: Constant Shrinkage (trained on training set)
+        lambda_const = constant_shrinkage(lambdas_train)
+        baseline_metrics = evaluate_constant_baseline(window_data, lambdas_df, lambda_const)
+        
+        # Baseline 2: VIX Threshold Rule (trained on training set)
+        features_train = [features[i] for i in train_indices]
+        vix_metrics = vix_threshold_baseline(window_data, lambdas_df, features_train, LAMBDA_GRID)
+    else:
+        print("WARNING: No training windows found. Using all data.")
+        lambda_const = constant_shrinkage(lambdas_df)
+        baseline_metrics = evaluate_constant_baseline(window_data, lambdas_df, lambda_const)
+        vix_metrics = vix_threshold_baseline(window_data, lambdas_df, features, LAMBDA_GRID)
+    
+    # Baseline 3: Rolling Average (still uses all data for now)
     rolling_metrics = rolling_average_baseline(window_data, lambdas_df, window_size=10)
     
     # ============================================
