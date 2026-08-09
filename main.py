@@ -22,7 +22,20 @@ def main():
     # ============================================
     # CONFIGURATION (hardcoded for Week 1)
     # ============================================
-    TICKERS = ['AAPL', 'MSFT', 'JPM', 'JNJ', 'XOM']
+    TICKERS = [
+        # Technology
+        'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'CSCO',
+        # Financials
+        'JPM', 'BAC', 'GS', 'V',
+        # Healthcare
+        'JNJ', 'PFE', 'UNH',
+        # Consumer
+        'PG', 'KO', 'WMT',
+        # Industrials
+        'XOM', 'CAT', 'BA',
+        # Other
+        'DIS', 'NKE'
+    ]
     START_DATE = '2000-01-01'
     END_DATE = '2025-01-01'
     WINDOW_SIZE = 120      # trading days (~6 months)
