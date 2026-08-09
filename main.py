@@ -190,8 +190,51 @@ def main():
     else:
         print("WARNING: No test windows available for portfolio evaluation.")
         portfolio_results = None
-    
 
+    # ============================================
+    # SUB-PERIOD ANALYSIS
+    # ============================================
+    print("\n" + "=" * 60)
+    print("STEP 7: Sub-Period Analysis")
+    print("=" * 60)
+    
+    from src.sub_period_analysis import evaluate_sub_periods, analyze_sub_period_results, plot_sub_period_comparison
+    
+    # Define methods for sub-period analysis
+    methods = {
+        'Optimal': (None, {}),
+        'Constant': (None, {'lambda_const': lambda_const}),
+        'VIX Threshold': (None, {}),
+        'Rolling Average': (None, {}),
+        'Ledoit-Wolf': (None, {})
+    }
+    
+    # Evaluate on sub-periods
+    sub_period_results = evaluate_sub_periods(
+        window_data, lambdas_df, features, split, methods
+    )
+    
+    if not sub_period_results.empty:
+        # Save results
+        sub_period_results.to_csv('results/sub_period_results.csv', index=False)
+        print("Saved sub-period results to: results/sub_period_results.csv")
+        
+        # Generate summary
+        summary = analyze_sub_period_results(sub_period_results)
+        print("\n=== Sub-Period Summary ===")
+        print(summary.to_string(index=False))
+        summary.to_csv('results/sub_period_summary.csv', index=False)
+        
+        # Plot
+        plot_sub_period_comparison(
+            sub_period_results,
+            save_path='results/figures/sub_period_comparison.png'
+        )
+    else:
+        print("No sub-period results available.")
+
+
+        
     
     # ============================================
     # 6. EVALUATION & VISUALIZATION
