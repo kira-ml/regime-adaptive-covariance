@@ -40,7 +40,7 @@ def main():
     END_DATE = '2025-01-01'
     WINDOW_SIZE = 120      # trading days (~6 months)
     HORIZON = 20           # trading days (~1 month)
-    LAMBDA_GRID = np.linspace(0, 1, 21)  # 0.00, 0.05, ..., 1.00
+    LAMBDA_GRID = np.linspace(0, 0.5, 51)  # 0.00, 0.01, 0.02, ..., 0.50
     
     # Create directories
     os.makedirs('data/raw', exist_ok=True)
