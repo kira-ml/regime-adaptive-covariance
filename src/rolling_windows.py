@@ -41,7 +41,7 @@ def compute_covariance_matrices(returns, windows):
     - windows: list of window dicts from create_windows()
     
     Returns:
-    - list of dicts with 'S', 'realized', 'dates'
+    - list of dicts with 'S', 'realized', 'dates', 'train_returns'
     """
     window_data = []
     
@@ -67,7 +67,8 @@ def compute_covariance_matrices(returns, windows):
             'realized': realized,
             'train_dates': train_dates,
             'test_dates': test_dates,
-            'n_assets': S.shape[0]
+            'n_assets': S.shape[0],
+            'train_returns': train_returns  # Added for Ledoit-Wolf
         })
     
     print(f"Computed covariance matrices for {len(window_data)} windows")

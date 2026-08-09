@@ -153,6 +153,32 @@ def main():
     # Baseline 4: Ledoit-Wolf
     from src.baselines import ledoit_wolf_baseline
     lw_metrics = ledoit_wolf_baseline(window_data)
+
+
+    # ============================================
+    # PORTFOLIO EVALUATION
+    # ============================================
+    print("\n" + "=" * 60)
+    print("STEP 6: Portfolio Evaluation")
+    print("=" * 60)
+    
+    from src.portfolio import evaluate_portfolio_performance
+    
+    # Define methods to evaluate
+    methods = {
+        'Optimal': (None, {}),
+        'Constant': (None, {'lambda_const': lambda_const}),
+        'VIX Threshold': (None, {}),
+        'Rolling Average': (None, {}),
+        'Ledoit-Wolf': (None, {})
+    }
+    
+    portfolio_results = evaluate_portfolio_performance(window_data, lambdas_df, methods)
+    print(portfolio_results.to_string(index=False))
+    
+    # Save portfolio results
+    portfolio_results.to_csv('results/portfolio_metrics.csv', index=False)
+    print("Saved portfolio metrics to: results/portfolio_metrics.csv")
     
     # ============================================
     # 6. EVALUATION & VISUALIZATION

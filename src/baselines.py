@@ -223,10 +223,11 @@ def vix_threshold_baseline(window_data, lambdas_df_train, lambdas_df_all, vix_fe
 
 def ledoit_wolf_baseline(window_data):
     """
-    Ledoit-Wolf shrinkage estimator using scikit-learn.
+    Ledoit-Wolf shrinkage estimator using scikit-learn on actual returns data.
     
     Parameters:
     - window_data: list of dicts from compute_covariance_matrices()
+                   Must include 'train_returns' key
     
     Returns:
     - dict with metrics
@@ -234,58 +235,42 @@ def ledoit_wolf_baseline(window_data):
     from sklearn.covariance import LedoitWolf
     
     distances = []
+    lambdas = []
     
     for idx, w in enumerate(window_data):
-        # Need to reconstruct returns for this window
-        # We need the original returns data to fit LedoitWolf
-        # Since window_data doesn't store returns, we'll use S directly
-        # For proper implementation, we'd need returns data
-        
-        # Use sklearn's LedoitWolf on the covariance matrix directly
-        # Note: This is a simplification - proper implementation would use returns
-        S = w['S']
+        # Get the actual returns for this window
+        train_returns = w.get('train_returns')
         realized = w['realized']
-        n = S.shape[0]
+        n = w['n_assets']
         
-        # sklearn's LedoitWolf works on data, not covariance matrices
-        # Since we don't have the returns in window_data, we'll use the
-        # analytical Ledoit-Wolf formula as a fallback
-        
-        # Compute shrinkage intensity analytically
-        # Based on Ledoit-Wolf (2004) formula
-        # This is a simplified version for the identity target
-        
-        # Trace of S
-        trace_S = np.trace(S)
-        
-        # Frobenius norm of S
-        frob_S = np.linalg.norm(S, 'fro')
-        
-        # Shrinkage intensity formula (simplified)
-        # lambda = (trace_S / n) / (frob_S**2 / n)
-        # This is the Ledoit-Wolf intensity for identity target
-        if frob_S > 0:
-            lam_lw = (trace_S / n) / (frob_S**2 / n)
-            # Clip to [0, 1]
-            lam_lw = np.clip(lam_lw, 0, 1)
+        if train_returns is not None and not train_returns.empty:
+            # Use scikit-learn's LedoitWolf on the returns data
+            lw = LedoitWolf()
+            lw.fit(train_returns.values)
+            S_est = lw.covariance_
+            lam_lw = lw.shrinkage_
         else:
-            lam_lw = 0.5
+            # Fallback: use sample covariance
+            S_est = w['S']
+            lam_lw = 0.0
         
-        I = np.eye(n)
-        S_est = (1 - lam_lw) * S + lam_lw * I
         dist = frobenius_distance(S_est, realized)
         distances.append(dist)
+        lambdas.append(lam_lw)
     
     mean_dist = np.mean(distances)
     std_dist = np.std(distances)
+    mean_lambda = np.mean(lambdas)
     
     metrics = {
         'mean_frobenius': mean_dist,
         'std_frobenius': std_dist,
+        'mean_shrinkage': mean_lambda,
         'n_windows': len(window_data)
     }
     
     print("\n=== Ledoit-Wolf Baseline ===")
+    print(f"Mean shrinkage intensity: {mean_lambda:.4f}")
     print(f"Mean Frobenius distance: {mean_dist:.4f} (+/- {std_dist:.4f})")
     
     return metrics
