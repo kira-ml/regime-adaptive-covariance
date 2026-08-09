@@ -119,9 +119,21 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     n = window_data[0]['S'].shape[0]
     I = np.eye(n)
     
-    # Extract VIX levels and optimal lambdas
+    # Extract VIX levels
     vix_levels = np.array([f['vix_level'] for f in vix_features])
-    optimal_lambdas = lambdas_df['lambda_opt'].values
+    
+    # Extract optimal lambdas - ensure they match the same windows
+    if len(lambdas_df) > len(vix_levels):
+        # We're using a subset of windows (e.g., training set only)
+        # Find the matching window_ids
+        window_ids = [f['window_id'] for f in vix_features]
+        optimal_lambdas = lambdas_df[lambdas_df['window_id'].isin(window_ids)]['lambda_opt'].values
+    else:
+        optimal_lambdas = lambdas_df['lambda_opt'].values
+    
+    # Verify lengths match
+    if len(optimal_lambdas) != len(vix_levels):
+        raise ValueError(f"Length mismatch: vix_levels={len(vix_levels)}, optimal_lambdas={len(optimal_lambdas)}")
     
     # Search for optimal two thresholds using grid search
     # Try all combinations of VIX percentiles (15th to 85th percentile)
