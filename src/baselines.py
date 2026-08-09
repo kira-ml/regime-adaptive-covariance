@@ -92,14 +92,15 @@ def evaluate_constant_baseline(window_data, lambdas_df, lambda_const):
     return metrics
 
 
-def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
+def vix_threshold_baseline(window_data, lambdas_df, vix_features_train, vix_features_all, lambda_grid):
     """
     VIX threshold rule baseline with 3 regimes (low/medium/high).
     
     Parameters:
     - window_data: list of dicts from compute_covariance_matrices()
     - lambdas_df: DataFrame with optimal lambdas (may be subset for training)
-    - vix_features: list of dicts with 'vix_level' for each window (training set)
+    - vix_features_train: list of dicts with 'vix_level' for training windows
+    - vix_features_all: list of dicts with 'vix_level' for ALL windows
     - lambda_grid: array of lambda values
     
     Returns:
@@ -119,29 +120,25 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
     n = window_data[0]['S'].shape[0]
     I = np.eye(n)
     
-    # Store original vix features for all windows
-    vix_features_original = vix_features
-    
     # Extract VIX levels from training data
-    vix_levels = np.array([f['vix_level'] for f in vix_features])
+    vix_levels_train = np.array([f['vix_level'] for f in vix_features_train])
     
-    # Extract optimal lambdas - ensure they match the same windows
-    if len(lambdas_df) > len(vix_levels):
+    # Extract optimal lambdas for training data
+    if len(lambdas_df) > len(vix_levels_train):
         # We're using a subset of windows (e.g., training set only)
-        # Find the matching window_ids
-        window_ids = [f['window_id'] for f in vix_features]
-        optimal_lambdas = lambdas_df[lambdas_df['window_id'].isin(window_ids)]['lambda_opt'].values
+        window_ids = [f['window_id'] for f in vix_features_train]
+        optimal_lambdas_train = lambdas_df[lambdas_df['window_id'].isin(window_ids)]['lambda_opt'].values
     else:
-        optimal_lambdas = lambdas_df['lambda_opt'].values
-    
-    # Store full optimal lambdas for all windows (for final evaluation)
-    optimal_lambdas_full = lambdas_df['lambda_opt'].values if len(lambdas_df) == len(window_data) else np.array([f['lambda_opt'] for f in lambdas_df.to_dict('records')])
+        optimal_lambdas_train = lambdas_df['lambda_opt'].values
     
     # Verify lengths match
-    if len(optimal_lambdas) != len(vix_levels):
-        raise ValueError(f"Length mismatch: vix_levels={len(vix_levels)}, optimal_lambdas={len(optimal_lambdas)}")
+    if len(optimal_lambdas_train) != len(vix_levels_train):
+        raise ValueError(f"Length mismatch: vix_levels_train={len(vix_levels_train)}, optimal_lambdas_train={len(optimal_lambdas_train)}")
     
-    # Search for optimal two thresholds using grid search
+    # Get full optimal lambdas for all windows
+    full_optimal_lambdas = lambdas_df['lambda_opt'].values
+    
+    # Search for optimal two thresholds using grid search on training data
     percentiles_low = np.linspace(15, 45, 7)
     percentiles_high = np.linspace(55, 85, 7)
     
@@ -154,22 +151,22 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
             if pct_low >= pct_high:
                 continue
                 
-            threshold_low = np.percentile(vix_levels, pct_low)
-            threshold_high = np.percentile(vix_levels, pct_high)
+            threshold_low = np.percentile(vix_levels_train, pct_low)
+            threshold_high = np.percentile(vix_levels_train, pct_high)
             
             # Assign lambda based on 3 regimes (training only)
-            lambda_pred = np.zeros_like(vix_levels)
-            for i, vix in enumerate(vix_levels):
+            lambda_pred = np.zeros_like(vix_levels_train)
+            for i, vix in enumerate(vix_levels_train):
                 if vix < threshold_low:
-                    lambda_pred[i] = optimal_lambdas[vix_levels < threshold_low].mean()
+                    lambda_pred[i] = optimal_lambdas_train[vix_levels_train < threshold_low].mean()
                 elif vix < threshold_high:
-                    lambda_pred[i] = optimal_lambdas[(vix_levels >= threshold_low) & (vix_levels < threshold_high)].mean()
+                    lambda_pred[i] = optimal_lambdas_train[(vix_levels_train >= threshold_low) & (vix_levels_train < threshold_high)].mean()
                 else:
-                    lambda_pred[i] = optimal_lambdas[vix_levels >= threshold_high].mean()
+                    lambda_pred[i] = optimal_lambdas_train[vix_levels_train >= threshold_high].mean()
             
             # Compute Frobenius distances for training windows only
             distances = []
-            for idx, w in enumerate(window_data[:len(vix_levels)]):
+            for idx, w in enumerate(window_data[:len(vix_levels_train)]):
                 S = w['S']
                 realized = w['realized']
                 
@@ -186,11 +183,8 @@ def vix_threshold_baseline(window_data, lambdas_df, vix_features, lambda_grid):
                 best_threshold_high = threshold_high
     
     # Apply best thresholds to ALL windows
-    all_vix_levels = np.array([f['vix_level'] for f in vix_features_original])
+    all_vix_levels = np.array([f['vix_level'] for f in vix_features_all])
     lambda_pred_full = np.zeros(len(all_vix_levels))
-    
-    # Use full optimal lambdas for the means
-    full_optimal_lambdas = lambdas_df['lambda_opt'].values
     
     for i, vix in enumerate(all_vix_levels):
         if vix < best_threshold_low:
