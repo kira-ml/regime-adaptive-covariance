@@ -19,80 +19,80 @@ Covariance matrix estimation is fundamental to portfolio construction and risk m
 ### Why This Is a Machine Learning Problem
 
 The relationship between market conditions and optimal shrinkage is:
-- **Complex**: Multiple features (volatility, correlation structure, market stress) likely interact
-- **Non-linear**: The effect of VIX on optimal λ is probably not linear
-- **Unknown**: No closed-form solution exists for regime-dependent optimal λ
-- **Predictable**: Market conditions are observable and contain forward-looking information
+- **Complex**: Multiple features (volatility, correlation structure, market stress) likely interact.
+- **Non-linear**: The effect of VIX on optimal \(\lambda\) is probably not linear.
+- **Unknown**: No closed-form solution exists for regime-dependent optimal \(\lambda\).
+- **Predictable**: Market conditions are observable and contain forward-looking information.
 
-This makes it a natural candidate for supervised learning—predict the optimal λ from observable market features.
+This makes it a natural candidate for supervised learning—predict the optimal \(\lambda\) from observable market features.
 
 ### What This Project Does Not Claim
 
-- This is **not** a new covariance estimator
-- This is **not** a production-ready risk system
-- This is **not** guaranteed to outperform existing methods
-- This is **not** financial advice
+- This is **not** a new covariance estimator.
+- This is **not** a production-ready risk system.
+- This is **not** guaranteed to outperform existing methods in all conditions.
+- This is **not** financial advice.
 
 ### What This Project Actually Does
 
-**Empirically tests whether market regime information improves out-of-sample covariance shrinkage predictions compared to static approaches.**
+**Empirically tests whether market regime information improves out-of-sample covariance shrinkage predictions compared to static approaches.** It does so by framing the problem as a supervised regression task, testing multiple feature sets, and evaluating both covariance accuracy and portfolio-level economic impact.
 
 ---
 
 ## 3. Problem Framing (Machine Learning Formulation)
 
 ### Task Type
-**Supervised regression** (predicting a continuous target: λ ∈ [0,1])
+**Supervised regression** (predicting a continuous target: \(\lambda \in [0,1]\)).
 
 ### Unit of Observation
-A rolling estimation window of `T` trading days (e.g., 120 days) ending at time `t`.
+A rolling estimation window of \(T = 120\) trading days ending at time \(t\).
 
-### Target Variable (y)
-For each window `t`, the target is the optimal shrinkage intensity:
+### Target Variable (\(y\))
+For each window \(t\), the target is the optimal shrinkage intensity:
 
-```
-λ*_t = argmin_{λ ∈ [0,1]} || (1-λ) * S_t + λ * I - Σ_{t+1:t+H} ||_F^2
-```
+$$
+\lambda^*_t = \operatorname*{argmin}_{\lambda \in [0,1]} \left\| (1-\lambda) S_t + \lambda I - \Sigma_{t+1:t+H} \right\|_F^2
+$$
 
 Where:
-- `S_t`: Sample covariance matrix from window ending at t
-- `I`: Identity matrix (shrinkage target)
-- `Σ_{t+1:t+H}`: Realized covariance over horizon H (20 days)
-- `||·||_F`: Frobenius norm
+- \(S_t\): Sample covariance matrix from window ending at \(t\).
+- \(I\): Identity matrix (shrinkage target).
+- \(\Sigma_{t+1:t+H}\): Realized covariance over horizon \(H = 20\) days.
+- \(\|\cdot\|_F\): Frobenius norm.
 
-**Important:** This is a *proxy* target. We are not predicting the true optimal λ (which is unknowable). We are predicting the λ that would have minimized error relative to the realized covariance. This is the standard approach in this literature.
+**Important:** This is a *proxy* target. We are not predicting the true optimal \(\lambda\) (which is unknowable). We are predicting the \(\lambda\) that would have minimized error relative to the realized covariance. This is the standard approach in this literature.
 
-### Input Features (X)
-Features must be **observable at time t** (no look-ahead).
+### Input Features (\(X\))
+Features must be **observable at time \(t\)** (no look-ahead).
 
 **Market Regime Features:**
-1. VIX level (market volatility expectations)
-2. VIX percentile over past 1 year (relative regime position)
-3. Realized volatility (20-day) of the equally-weighted portfolio
-4. Average pairwise correlation of assets in the window
-5. Cross-sectional dispersion of returns (standard deviation of returns across assets)
-6. Market return (S&P 500 performance) over the window
-7. Maximum drawdown over the window (market stress indicator)
+1. VIX level (market volatility expectations).
+2. VIX percentile over the past 1 year (relative regime position).
+3. Realized volatility (20-day) of the equally-weighted portfolio.
+4. Average pairwise correlation of assets in the window.
+5. Cross-sectional dispersion of returns (standard deviation of returns across assets).
+6. Market return over the window.
+7. Maximum drawdown over the window (market stress indicator).
 
 **Covariance Structure Features:**
-8. Condition number of sample covariance matrix (ill-conditioning)
-9. Trace of sample covariance (total variance)
-10. Average eigenvalue magnitude
+8. Condition number of sample covariance matrix (ill-conditioning).
+9. Trace of sample covariance (total variance).
+10. Average eigenvalue magnitude.
 
-**Total features:** 10 (Week 1: 3-5, Week 2+: full set)
+**Total features:** 10. Additional engineered features (interaction, lag, rolling mean) were tested but did not improve predictive performance.
 
 ### Prediction Horizon
-`H = 20` trading days (~1 month). Chosen because:
-- Matches typical portfolio rebalancing frequency
-- Long enough to be economically meaningful
-- Short enough to estimate reliably
+\(H = 20\) trading days (~1 month). Chosen because:
+- Matches typical portfolio rebalancing frequency.
+- Long enough to be economically meaningful.
+- Short enough to estimate reliably.
 
 ### Data Split (Chronological)
-- **Training:** 2000–2015 (~16 years)
-- **Validation:** 2016–2019 (~4 years) for hyperparameter tuning
-- **Test:** 2020–2025 (~5 years) for final evaluation
+- **Training:** 2000–2015 (~16 years).
+- **Validation:** 2016–2019 (~4 years) for hyperparameter tuning.
+- **Test:** 2020–2025 (~5 years) for final evaluation.
 
-*Rationale: Strict temporal ordering prevents look-ahead bias. The test period includes COVID-19 and 2022 bear market—stress tests.*
+*Rationale: Strict temporal ordering prevents look-ahead bias. The test period includes the COVID-19 crash, the 2022 bear market, and recovery phases—providing a realistic stress test.*
 
 ---
 
@@ -103,28 +103,28 @@ Features must be **observable at time t** (no look-ahead).
 
 ### Secondary Research Questions
 1. Which regime features are most predictive of optimal shrinkage?
-2. Does improved shrinkage prediction translate to lower portfolio volatility?
-3. Is the improvement economically meaningful (≥5% volatility reduction)?
+2. Does improved covariance estimation translate to lower portfolio volatility?
+3. Is the improvement economically meaningful and statistically significant?
 
 ---
 
 ## 5. Hypotheses
 
 ### H1: Predictive Signal Exists
-**H₁₀:** All regime features have zero predictive power (R² = 0)  
-**H₁₁:** At least one regime feature has non-zero predictive power (R² > 0)
+**H₁₀:** All regime features have zero predictive power (\(R^2 = 0\)).  
+**H₁₁:** At least one regime feature has non-zero predictive power (\(R^2 > 0\)).
 
-**Test:** F-test on Elastic Net coefficients; feature importance for Gradient Boosting.
+**Test:** Feature set evaluation via linear regression; Elastic Net coefficients.
 
 ### H2: Dynamic Shrinkage Improves Accuracy
-**H₂₀:** Dynamic shrinkage does not reduce mean Frobenius distance vs. constant shrinkage  
-**H₂₁:** Dynamic shrinkage reduces mean Frobenius distance
+**H₂₀:** Dynamic shrinkage does not reduce mean Frobenius distance vs. constant shrinkage.  
+**H₂₁:** Dynamic shrinkage reduces mean Frobenius distance.
 
 **Test:** Diebold-Mariano test for pairwise forecast comparison.
 
 ### H3: Economic Significance
-**H₃₀:** Improved covariance estimation does not reduce portfolio volatility  
-**H₃₁:** Improved covariance estimation reduces portfolio volatility by ≥5%
+**H₃₀:** Improved covariance estimation does not reduce portfolio volatility.  
+**H₃₁:** Improved covariance estimation reduces portfolio volatility by a meaningful margin (\(\geq 5\%\)).
 
 **Test:** Bootstrap confidence intervals for volatility difference; sub-period analysis.
 
@@ -133,57 +133,52 @@ Features must be **observable at time t** (no look-ahead).
 ## 6. Baseline Models
 
 ### Baseline 1: Constant Optimal Shrinkage (Primary Benchmark)
-**Method:** Apply the average optimal λ from the training set to all test windows.
+**Method:** Apply the average optimal \(\lambda\) from the training set to all test windows.
 
-```
-λ_pred = mean(λ*_train)
-```
+$$
+\lambda_{\text{pred}} = \text{mean}(\lambda^*_{\text{train}})
+$$
 
 **Justification:** Represents standard practice—choose a shrinkage parameter and stick with it. If no model beats this, there is no exploitable regime signal.
 
-**Why it's a strong baseline:** It's simple, interpretable, and represents the default approach in many applications.
+**Why it's a strong baseline:** Simple, interpretable, and represents the default approach in many applications.
 
 ---
 
 ### Baseline 2: VIX Threshold Rule (Simple Dynamic Baseline)
-**Method:** A two-regime rule based on VIX level.
+**Method:** A 3-regime rule based on VIX level, with thresholds optimized on training data.
 
-1. Find threshold `τ` on training data that minimizes average Frobenius distance
-2. Apply rule:
-   - If VIX_t < τ: λ_pred = mean(λ*_train | VIX < τ)
-   - If VIX_t ≥ τ: λ_pred = mean(λ*_train | VIX ≥ τ)
+1. Find thresholds \(\tau_{\text{low}}\) and \(\tau_{\text{high}}\) on training data that minimize average Frobenius distance.
+2. Assign \(\lambda\) based on regime:
+   - \(\text{VIX} < \tau_{\text{low}}\): low-volatility regime.
+   - \(\tau_{\text{low}} \leq \text{VIX} < \tau_{\text{high}}\): medium-volatility regime.
+   - \(\text{VIX} \geq \tau_{\text{high}}\): high-volatility regime.
 
 **Justification:** Tests whether a simple, interpretable rule captures most of the regime variation. If this performs as well as ML, there's no need for complex models.
-
-**Why it's useful:** Represents what a practitioner might implement without ML. Sets a realistic bar for ML to clear.
 
 ---
 
 ### Baseline 3: Ledoit-Wolf (Industry Standard)
 **Method:** The Ledoit-Wolf (2004) shrinkage estimator.
 
-```
-Σ_LW = (1 - λ_LW) * S + λ_LW * I
-```
+$$
+\Sigma_{LW} = (1 - \lambda_{LW}) S + \lambda_{LW} I
+$$
 
-Where λ_LW is computed analytically from the data structure, not optimized for regimes.
+Where \(\lambda_{LW}\) is computed analytically from the data structure, not optimized for regimes.
 
-**Justification:** The most widely used covariance shrinkage method in practice. Strong benchmark.
-
-**Why it's useful:** If regime-adaptive methods can't beat Ledoit-Wolf, the project has no practical value.
+**Justification:** The most widely used covariance shrinkage method in practice. A strong benchmark.
 
 ---
 
-### Baseline 4: Rolling Average λ
-**Method:** Use the average optimal λ from the last `K` windows as the prediction.
+### Baseline 4: Rolling Average \(\lambda\)
+**Method:** Use the average optimal \(\lambda\) from the last \(K = 10\) windows as the prediction.
 
-```
-λ_pred = mean(λ*_{t-K:t})
-```
+$$
+\lambda_{\text{pred}} = \text{mean}(\lambda^*_{t-K:t})
+$$
 
 **Justification:** Tests whether simple temporal smoothing captures regime changes.
-
-**Why included:** Accounts for the possibility that λ is persistent but not regime-dependent.
 
 ---
 
@@ -192,30 +187,29 @@ Where λ_LW is computed analytically from the data structure, not optimized for 
 ### Elastic Net (Regularized Linear Regression)
 **Method:** Linear regression with L1 + L2 regularization.
 
-```
-λ_pred = β_0 + Σ β_i * feature_i
-```
+$$
+\lambda_{\text{pred}} = \beta_0 + \sum_i \beta_i \cdot \text{feature}_i
+$$
 
 **Why this is the advanced model (not Gradient Boosting):**
 
-1. **Simplicity:** Linear models are interpretable, which is valuable for understanding which features matter
-2. **Regularization:** Elastic Net handles correlated features (common in finance)
-3. **Performance:** For problems with ~10 features and ~2000 samples, linear models often perform comparably to non-linear models
-4. **Baseline progression:** If Elastic Net fails, non-linear models are unlikely to succeed (Occam's razor)
-5. **Economic interpretation:** Coefficients directly tell us which regime features matter and in what direction
+1. **Simplicity:** Linear models are interpretable, which is valuable for understanding which features matter.
+2. **Regularization:** Elastic Net handles correlated features (common in finance).
+3. **Performance:** For problems with ~10 features and ~2000 samples, linear models often perform comparably to non-linear models.
+4. **Baseline progression:** If Elastic Net fails, non-linear models are unlikely to succeed (Occam's razor).
+5. **Economic interpretation:** Coefficients directly tell us which regime features matter and in what direction.
 
 **Model Selection Rationale:**
-- **Not Gradient Boosting (Week 1-2):** Only introduce non-linearity if linear models systematically underperform
-- **Not Deep Learning:** Dataset is too small; interpretability is lost
-- **Not Random Forest:** Less interpretable than Elastic Net; no clear advantage for this problem
+- **Not Gradient Boosting:** Only introduce non-linearity if linear models systematically underperform.
+- **Not Deep Learning:** Dataset is too small; interpretability is lost.
+- **Not Random Forest:** Less interpretable than Elastic Net; no clear advantage for this problem.
 
 **Hyperparameter Tuning:**
-- α (L1 ratio): 0.1, 0.3, 0.5, 0.7, 0.9
-- λ (regularization strength): 0.001, 0.01, 0.1, 1.0, 10.0
-- Tuning via time-series cross-validation on validation set
+- \(\alpha\) (L1 ratio): 0.1, 0.3, 0.5, 0.7, 0.9.
+- \(\lambda\) (regularization strength): 0.001, 0.01, 0.1, 1.0, 10.0.
+- Tuning via validation set (time-series split).
 
-**Decision Point for Gradient Boosting:**
-If Elastic Net shows predictive signal (R² > 0.05, p < 0.05) but leaves systematic residuals (patterns in prediction errors across regimes), then introduce Gradient Boosting as a robustness check.
+**Decision Point for Gradient Boosting:** If Elastic Net shows predictive signal (\(R^2 > 0.05\)) but leaves systematic residuals, introduce Gradient Boosting as a robustness check.
 
 ---
 
@@ -225,73 +219,70 @@ If Elastic Net shows predictive signal (R² > 0.05, p < 0.05) but leaves systema
 
 | Metric | Definition | Why Used |
 |--------|------------|----------|
-| **Frobenius Distance** | `||Σ_est - Σ_real||_F` | Primary metric; directly measures estimation error |
-| **RMSE of λ** | `sqrt(mean((λ_pred - λ*)²))` | Measures prediction accuracy of target |
-| **R² of λ** | `1 - (SS_res / SS_tot)` | Measures proportion of variance explained |
+| **Frobenius Distance** | \(\|\Sigma_{\text{est}} - \Sigma_{\text{real}}\|_F\) | Primary metric; directly measures estimation error. |
+| **RMSE of \(\lambda\)** | \(\sqrt{\text{mean}((\lambda_{\text{pred}} - \lambda^*)^2)}\) | Measures prediction accuracy of the target. |
+| **R² of \(\lambda\)** | \(1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}}\) | Measures proportion of variance explained. |
 
 ### Secondary Metrics (Portfolio Impact)
 
 | Metric | Definition | Why Used |
 |--------|------------|----------|
-| **Realized Volatility** | Std dev of portfolio returns | Direct economic measure |
-| **Turnover** | Mean absolute weight change | Practical cost consideration |
-| **Sharpe Ratio** | (Return - Rf) / Volatility | Risk-adjusted performance |
-| **Maximum Drawdown** | Max peak-to-trough decline | Tail risk measure |
+| **Realized Volatility** | Std dev of portfolio returns | Direct economic measure. |
+| **Turnover** | Mean absolute weight change | Practical cost consideration. |
+| **Sharpe Ratio** | \(\frac{R - R_f}{\sigma}\) | Risk-adjusted performance. |
+| **Maximum Drawdown** | Max peak-to-trough decline | Tail risk measure. |
 
 ### Statistical Tests
 
-1. **Diebold-Mariano Test:** Compares predictive accuracy of two models (constant vs. dynamic)
-2. **Bootstrap Confidence Intervals:** For volatility and Sharpe ratio differences
-3. **Sub-period Analysis:** Performance in high-volatility (VIX > 25) vs. low-volatility (VIX < 15) periods
+1. **Diebold-Mariano Test:** Compares predictive accuracy of two models (constant vs. dynamic).
+2. **Bootstrap Confidence Intervals:** For volatility differences.
+3. **Sub-period Analysis:** Performance across distinct market regimes.
 
 ### Evaluation Protocol
 
-1. All models trained on training set only
-2. Hyperparameters tuned on validation set (time-series CV)
-3. Final evaluation on test set (one forward test)
-4. Results reported with standard errors
-5. Feature importance analyzed for interpretability
+1. All models trained on training set only.
+2. Hyperparameters tuned on validation set.
+3. Final evaluation on test set (one forward test).
+4. Results reported with p-values and confidence intervals.
+5. Feature importance analyzed for interpretability.
 
 ---
 
 ## 9. Success Criteria
 
 ### Statistical Success
-- At least one dynamic model significantly outperforms Constant Shrinkage baseline (p < 0.05, Diebold-Mariano)
-- Improvement is consistent across sub-periods (not driven by one event)
+- At least one dynamic model significantly outperforms Constant Shrinkage (\(p < 0.05\), Diebold-Mariano).
+- Improvement is consistent across sub-periods (not driven by a single event).
 
 ### Practical Success
-- ≥5% reduction in mean Frobenius distance
-- ≥5% reduction in out-of-sample portfolio volatility
-- Improvement does not increase turnover by >20%
+- \(\geq 5\%\) reduction in mean Frobenius distance.
+- \(\geq 5\%\) reduction in out-of-sample portfolio volatility.
+- Improvement does not increase turnover by \(>20\%\).
 
 ### Research Contribution
-- Clear answer to the primary research question
-- Feature importance analysis reveals which regime indicators matter
-- Reproducible code and results
-- Transparent discussion of limitations and failure modes
+- Clear, evidence-based answer to the primary research question.
+- Transparent reporting of both successes and failures.
+- Reproducible code and results.
 
 ---
 
 ## 10. Risk Controls & Validation
 
 ### Look-Ahead Bias
-- Strict chronological data split
-- Features use only data available at time t
-- Manual verification of window alignment
+- Strict chronological data split.
+- Features use only data available at time \(t\).
 
 ### Overfitting
-- Regularization (Elastic Net)
-- Time-series cross-validation
-- Simple models preferred over complex
+- Regularization (Elastic Net).
+- Time-series cross-validation.
+- Simple models preferred over complex.
 
 ### Survivorship Bias
-- Use fixed set of large-cap stocks (continuous history)
-- Document any stock removals
+- Fixed set of large-cap stocks with continuous history.
 
 ### Non-Stationarity
-- Sub-period analysis (2000-2007, 2008-2012, 2013-2019, 2020-2025)
-- Report stability of results across periods
+- Sub-period analysis across multiple market regimes.
+- Results reported separately for each period.
 
 ---
 
@@ -300,55 +291,36 @@ If Elastic Net shows predictive signal (R² > 0.05, p < 0.05) but leaves systema
 ### Primary Dataset
 
 **Yahoo Finance / yfinance**
-- Daily adjusted close prices for 5-100 liquid S&P 500 stocks
-- Period: January 2000 – December 2025
-- Access: Free via `yfinance` API
+- Daily adjusted close prices for 50 liquid S&P 500 stocks.
+- Period: January 2000 – December 2025.
+- Access: Free via `yfinance` API.
 
 ### Supplementary Market Features
 
 **VIX Index** (CBOE Volatility Index)
-- Available via Yahoo Finance (`^VIX`)
-- Used as a proxy for market-wide volatility expectations
-
-**Fama-French Factors** (Ken French Data Library)
-- Daily returns for market, size, value, momentum factors
-- Available for free download
-- Optional: Used for robustness checks
-
-**Treasury Yields** (FRED)
-- 10-year Treasury yield, 3-month T-bill rate
-- Available via FRED API or pandas-datareader
-- Optional: Used for risk-free rate in Sharpe ratio
+- Available via Yahoo Finance (`^VIX`).
+- Used as a proxy for market-wide volatility expectations.
 
 ---
 
 ## 12. Project Scope & Deliverables
 
-### Week 1 (MVP) - In Progress ✓
-- Data pipeline (5 stocks, 2000-2025)
-- Optimal λ computation (120-day window, 20-day horizon)
-- Constant shrinkage baseline
-- Basic visualization
-
-### Week 2 (Planned)
-- Feature engineering (VIX, volatility, correlation, dispersion)
-- Elastic Net model with cross-validation
-- Rule-based VIX threshold baseline
-- Evaluation framework
-
-### Week 3 (If justified)
-- Gradient Boosting comparison
-- Portfolio construction and evaluation
-- Robustness checks
-- Final write-up
+### Completed (Weeks 1–2)
+- 50-stock data pipeline (2000–2025).
+- 4 baseline models (Constant, VIX Threshold, Rolling Average, Ledoit-Wolf).
+- Feature set selection (7 sets tested; VIX-Only best).
+- Elastic Net with hyperparameter tuning.
+- Portfolio evaluation (test set only).
+- Sub-period analysis (4 test periods).
+- Statistical tests (Diebold-Mariano, bootstrap).
 
 ### What Will NOT Be Built
-- Production-grade MLOps infrastructure
-- Docker containers or Kubernetes deployment
-- Real-time data streaming or APIs
-- Deep learning models (LSTMs, neural networks)
-- GPU-accelerated training
-- Distributed computing (Spark, Dask)
+- Production-grade MLOps infrastructure.
+- Docker containers or Kubernetes deployment.
+- Real-time data streaming or APIs.
+- Deep learning models (LSTMs, neural networks).
+- GPU-accelerated training.
+- Distributed computing (Spark, Dask).
 
 ---
 
@@ -372,17 +344,17 @@ If Elastic Net shows predictive signal (R² > 0.05, p < 0.05) but leaves systema
 
 | Symbol | Description |
 |--------|-------------|
-| `S_t` | Sample covariance matrix at time t |
-| `I` | Identity matrix (shrinkage target) |
-| `λ` | Shrinkage intensity (scalar in [0,1]) |
-| `Σ_realized,t+H` | Realized covariance over next H days |
-| `||·||_F` | Frobenius norm |
-| `λ*_t` | Optimal shrinkage intensity for window t |
-| `d_F` | Frobenius distance between covariance matrices |
-| `VIX_t` | CBOE Volatility Index at time t |
-| `n` | Number of assets in portfolio |
-| `H` | Prediction horizon (20 trading days) |
+| \(S_t\) | Sample covariance matrix at time \(t\). |
+| \(I\) | Identity matrix (shrinkage target). |
+| \(\lambda\) | Shrinkage intensity (scalar in \([0,1]\)). |
+| \(\Sigma_{\text{realized}, t+H}\) | Realized covariance over next \(H\) days. |
+| \(\|\cdot\|_F\) | Frobenius norm. |
+| \(\lambda^*_t\) | Optimal shrinkage intensity for window \(t\). |
+| \(d_F\) | Frobenius distance between covariance matrices. |
+| \(\text{VIX}_t\) | CBOE Volatility Index at time \(t\). |
+| \(n\) | Number of assets in portfolio. |
+| \(H\) | Prediction horizon (20 trading days). |
 
 ---
 
-*This problem framing document serves as the foundation for the project implementation. All decisions about model selection, evaluation, and interpretation should be guided by the principles and constraints outlined above. The framing is designed to evolve as the project develops and new insights emerge.*
+*This problem framing document serves as the foundation for the project implementation. All decisions about model selection, evaluation, and interpretation are guided by the principles and constraints outlined above. The framing is designed to evolve as the project develops and new insights emerge.*
