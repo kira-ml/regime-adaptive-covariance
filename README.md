@@ -143,7 +143,7 @@ regime-adaptive-covariance/
 **Target Variable:** Optimal shrinkage intensity \(\lambda^*_t\) that minimizes Frobenius distance to future realized covariance:
 
 $$
-\lambda^*_t = \operatorname*{argmin}_{\lambda \in [0,1]} \left\| (1-\lambda) S_t + \lambda I - \Sigma_{t+1:t+20} \right\|_F^2
+\lambda^*_t = \underset{\lambda \in [0,1]}{\text{argmin}} \left\| (1-\lambda) S_t + \lambda I - \Sigma_{t+1:t+20} \right\|_F^2
 $$
 
 **Prediction Horizon:** 20 trading days (~1 month)
