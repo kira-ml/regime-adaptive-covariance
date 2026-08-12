@@ -46,6 +46,7 @@ Most risk models assume a stable, stationary covariance structure. In reality, m
 | Feature engineering and target construction | ✅ Complete |
 | Baseline model implementation (4 models) | ✅ Complete |
 | Advanced model (Elastic Net) | ✅ Complete |
+| Robustness check (XGBoost) | ✅ Complete |
 | Portfolio evaluation (test set only) | ✅ Complete |
 | Sub-period analysis | ✅ Complete |
 | Statistical tests (Diebold-Mariano, bootstrap) | ✅ Complete |
@@ -71,6 +72,7 @@ regime-adaptive-covariance/
 │   ├── baselines.py              # Constant, VIX, Rolling, Ledoit-Wolf
 │   ├── feature_engineering.py    # Feature set selection and evaluation
 │   ├── elastic_net.py            # Elastic Net with hyperparameter tuning
+│   ├── xgboost_model.py          # XGBoost robustness check
 │   ├── portfolio.py              # Minimum-variance portfolio construction
 │   ├── sub_period_analysis.py    # Regime-dependent performance
 │   ├── statistical_tests.py      # Diebold-Mariano and bootstrap
@@ -155,13 +157,14 @@ $$
 | **Rolling Average** | Average of past 10 optimal λ values |
 | **Ledoit-Wolf** | Industry-standard static shrinkage estimator |
 
-### 3. Machine Learning Model
+### 3. Machine Learning Models
 
 | Model | Purpose | Complexity |
 |-------|---------|------------|
 | **Elastic Net** | Linear model with L1 + L2 regularization | Low |
+| **XGBoost** | Non-linear model (robustness check) | Medium |
 
-> **Note:** Complexity was intentionally kept low. Linear models are interpretable, regularized, and sufficient for this problem. Non-linear models (Gradient Boosting) were not justified by the evidence.
+> **Note:** XGBoost was added as a **robustness check** to test whether non-linearity could improve predictions. It performed identically to Elastic Net, confirming that the limitation is not model linearity.
 
 ### 4. Feature Sets Tested
 
@@ -222,12 +225,25 @@ Strict chronological split eliminates look-ahead bias.
 | Constant | 0.00785 | 0.010099 |
 | Ledoit-Wolf | **0.00760** | **0.008385** |
 | Optimal (oracle) | 0.00783 | 0.010286 |
+| Elastic Net | 0.0121 | — |
+| XGBoost | 0.0121 | — |
 
-**Key finding:** Ledoit-Wolf significantly outperforms Constant in both covariance accuracy and portfolio volatility.
+**Key finding:** Ledoit-Wolf significantly outperforms Constant in both covariance accuracy and portfolio volatility. Both ML models (Elastic Net and XGBoost) performed worse than all baselines.
 
 ---
 
-### 3. Statistical Tests
+### 3. ML Model Comparison
+
+| Model | RMSE (λ) | R² (λ) | Mean Frobenius |
+|-------|----------|--------|----------------|
+| Elastic Net | 0.000530 | -0.0228 | 0.0121 |
+| XGBoost | 0.000530 | -0.0228 | 0.0121 |
+
+**Conclusion:** XGBoost performed identically to Elastic Net. This confirms that the limitation is not model linearity, but the inherent difficulty of predicting near-zero shrinkage intensities from market features.
+
+---
+
+### 4. Statistical Tests
 
 | Test | Comparison | Statistic | p-value |
 |------|------------|-----------|---------|
@@ -240,7 +256,7 @@ Strict chronological split eliminates look-ahead bias.
 
 ---
 
-### 4. Sub-Period Analysis
+### 5. Sub-Period Analysis
 
 | Period | Best Method | Improvement vs Constant |
 |--------|-------------|-------------------------|
@@ -260,6 +276,7 @@ Strict chronological split eliminates look-ahead bias.
 | Dynamic model beats Constant (p < 0.05) | Ledoit-Wolf: p = 0.0000 | ✅ Passed |
 | ≥5% volatility reduction | ~17% reduction (0.010099 → 0.008385) | ✅ Passed |
 | Consistency across sub-periods | Ledoit-Wolf best in all 4 periods | ✅ Passed |
+| ML model improves over baselines | Elastic Net and XGBoost both underperformed | ⚠️ Failed (but documented) |
 
 ---
 
