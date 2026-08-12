@@ -209,7 +209,18 @@ $$
 - \(\lambda\) (regularization strength): 0.001, 0.01, 0.1, 1.0, 10.0.
 - Tuning via validation set (time-series split).
 
-**Decision Point for Gradient Boosting:** If Elastic Net shows predictive signal (\(R^2 > 0.05\)) but leaves systematic residuals, introduce Gradient Boosting as a robustness check.
+---
+
+### 7.1 Robustness Check: XGBoost
+
+To test whether a non-linear model could capture relationships missed by Elastic Net, **XGBoost** was evaluated as a robustness check using the same VIX-Only feature set and train/validation/test split.
+
+| Model | RMSE (λ) | R² (λ) | Mean Frobenius |
+|-------|----------|--------|----------------|
+| Elastic Net | 0.000530 | -0.0228 | 0.0121 |
+| XGBoost | 0.000530 | -0.0228 | 0.0121 |
+
+**Result:** XGBoost performed identically to Elastic Net, achieving the same RMSE, R², and Frobenius distance. This confirms that the limitation is not model linearity, but the inherent difficulty of predicting near-zero shrinkage intensities from market features.
 
 ---
 
@@ -310,6 +321,7 @@ $$
 - 4 baseline models (Constant, VIX Threshold, Rolling Average, Ledoit-Wolf).
 - Feature set selection (7 sets tested; VIX-Only best).
 - Elastic Net with hyperparameter tuning.
+- XGBoost robustness check.
 - Portfolio evaluation (test set only).
 - Sub-period analysis (4 test periods).
 - Statistical tests (Diebold-Mariano, bootstrap).
