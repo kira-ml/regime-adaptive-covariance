@@ -13,6 +13,7 @@ from src.baselines import vix_threshold_baseline, rolling_average_baseline
 from src.evaluation import (plot_lambdas_over_time, plot_frobenius_comparison, 
                            plot_feature_correlation, save_metrics)
 from src.feature_engineering import run_feature_engineering
+from src.elastic_net import evaluate_elastic_net_on_covariance
 
 
 def main():
@@ -24,18 +25,18 @@ def main():
     # CONFIGURATION (hardcoded for Week 1)
     # ============================================
     TICKERS = [
-        # Technology
-        'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'CSCO',
-        # Financials
-        'JPM', 'BAC', 'GS', 'V',
-        # Healthcare
-        'JNJ', 'PFE', 'UNH',
-        # Consumer
-        'PG', 'KO', 'WMT',
-        # Industrials
-        'XOM', 'CAT', 'BA',
-        # Other
-        'DIS', 'NKE'
+        # Technology (10)
+        'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'META', 'AMZN', 'TSLA', 'CSCO', 'ADBE', 'INTC',
+        # Financials (8)
+        'JPM', 'BAC', 'WFC', 'GS', 'MS', 'V', 'MA', 'BLK',
+        # Healthcare (8)
+        'JNJ', 'PFE', 'UNH', 'MRK', 'ABBV', 'AMGN', 'GILD', 'BMY',
+        # Consumer (8)
+        'PG', 'KO', 'WMT', 'COST', 'HD', 'MCD', 'NKE', 'SBUX',
+        # Industrials (8)
+        'XOM', 'CAT', 'BA', 'GE', 'MMM', 'HON', 'UPS', 'RTX',
+        # Other (8)
+        'DIS', 'T', 'VZ', 'CVX', 'IBM', 'QCOM', 'TXN', 'NFLX'
     ]
     START_DATE = '2000-01-01'
     END_DATE = '2025-01-01'
@@ -181,7 +182,57 @@ def main():
     print("Saved feature set comparison to: results/feature_set_comparison.csv")
 
 
-    
+    # ============================================
+    # ELASTIC NET (NEW STEP)
+    # ============================================
+    print("\n" + "=" * 60)
+    print("ELASTIC NET: Using Best Feature Set (VIX-Only)")
+    print("=" * 60)
+
+    from src.elastic_net import evaluate_elastic_net_on_covariance
+
+    # Use the best feature set from comparison
+    best_set_name = comparison.loc[comparison['rmse'].idxmin(), 'set_name']
+    feature_cols = {
+        'VIX-Only': ['vix_level'],
+        'Vol+Corr': ['vix_level', 'realized_vol', 'avg_correlation'],
+        'Market': ['vix_level', 'realized_vol', 'avg_correlation',
+                   'cross_sectional_dispersion', 'vix_percentile', 'max_drawdown'],
+        'Covariance': ['condition_number', 'trace', 'avg_eigenvalue', 'avg_correlation'],
+        'All': ['vix_level', 'vix_percentile', 'realized_vol', 'avg_correlation',
+                'cross_sectional_dispersion', 'market_return', 'max_drawdown',
+                'condition_number', 'trace', 'avg_eigenvalue']
+    }[best_set_name]
+
+    en_metrics = evaluate_elastic_net_on_covariance(
+        window_data=window_data,
+        lambdas_df=lambdas_df,
+        feature_cols=feature_cols,
+        train_idx=split['train'],
+        val_idx=split['val'],
+        test_idx=split['test'],
+        features_df=features_df
+    )
+
+    print(f"\n=== Elastic Net Results (Test Set) ===")
+    print(f"Best hyperparameters: {en_metrics['best_params']}")
+    print(f"RMSE of λ prediction: {en_metrics['rmse']:.6f}")
+    print(f"R² of λ prediction: {en_metrics['r2']:.4f}")
+    print(f"Mean Frobenius distance: {en_metrics['mean_frobenius']:.4f} (+/- {en_metrics['std_frobenius']:.4f})")
+
+    # Save results
+    pd.DataFrame([{
+        'model': 'ElasticNet',
+        'feature_set': best_set_name,
+        'rmse_lambda': en_metrics['rmse'],
+        'r2_lambda': en_metrics['r2'],
+        'mean_frobenius': en_metrics['mean_frobenius'],
+        'std_frobenius': en_metrics['std_frobenius'],
+        'best_alpha': en_metrics['best_params']['alpha'],
+        'best_l1_ratio': en_metrics['best_params']['l1_ratio']
+    }]).to_csv('results/elastic_net_results.csv', index=False)
+    print("Saved Elastic Net results to: results/elastic_net_results.csv")
+
     # ============================================
     # PORTFOLIO EVALUATION (TEST SET ONLY)
     # ============================================

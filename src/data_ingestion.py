@@ -16,9 +16,18 @@ def download_prices(tickers, start_date, end_date):
     Returns:
     - pd.DataFrame with dates as index, tickers as columns
     """
+    import time
+    
     print(f"Downloading data for {len(tickers)} tickers from {start_date} to {end_date}...")
     
-    data = yf.download(tickers, start=start_date, end=end_date, progress=False)
+    # Download all tickers at once with retry logic
+    try:
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False)
+    except Exception as e:
+        print(f"Initial download failed: {e}")
+        print("Retrying with 2-second delay...")
+        time.sleep(2)
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False)
     
     # Check if data is empty
     if data.empty:
