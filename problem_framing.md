@@ -51,7 +51,7 @@ A rolling estimation window of \(T = 120\) trading days ending at time \(t\).
 For each window \(t\), the target is the optimal shrinkage intensity:
 
 $$
-\lambda^*_t = \operatorname*{argmin}_{\lambda \in [0,1]} \left\| (1-\lambda) S_t + \lambda I - \Sigma_{t+1:t+H} \right\|_F^2
+\lambda^*_t = \underset{\lambda \in [0,1]}{\text{argmin}} \left\| (1-\lambda) S_t + \lambda I - \Sigma_{t+1:t+H} \right\|_F^2
 $$
 
 Where:
@@ -150,9 +150,9 @@ $$
 
 1. Find thresholds \(\tau_{\text{low}}\) and \(\tau_{\text{high}}\) on training data that minimize average Frobenius distance.
 2. Assign \(\lambda\) based on regime:
-   - \(\text{VIX} < \tau_{\text{low}}\): low-volatility regime.
-   - \(\tau_{\text{low}} \leq \text{VIX} < \tau_{\text{high}}\): medium-volatility regime.
-   - \(\text{VIX} \geq \tau_{\text{high}}\): high-volatility regime.
+   - \(\mathrm{VIX} < \tau_{\mathrm{low}}\): low-volatility regime.
+   - \(\tau_{\mathrm{low}} \leq \mathrm{VIX} < \tau_{\mathrm{high}}\): medium-volatility regime.
+   - \(\mathrm{VIX} \geq \tau_{\mathrm{high}}\): high-volatility regime.
 
 **Justification:** Tests whether a simple, interpretable rule captures most of the regime variation. If this performs as well as ML, there's no need for complex models.
 
@@ -230,9 +230,11 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 | Metric | Definition | Why Used |
 |--------|------------|----------|
-| **Frobenius Distance** | \(\|\Sigma_{\text{est}} - \Sigma_{\text{real}}\|_F\) | Primary metric; directly measures estimation error. |
-| **RMSE of \(\lambda\)** | \(\sqrt{\text{mean}((\lambda_{\text{pred}} - \lambda^*)^2)}\) | Measures prediction accuracy of the target. |
-| **R² of \(\lambda\)** | \(1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}}\) | Measures proportion of variance explained. |
+| **Frobenius Distance** | ‖Σ_est − Σ_real‖_F | Primary metric; directly measures estimation error. |
+| **RMSE of λ** | √(mean((λ_pred − λ*)²)) | Measures prediction accuracy of the target. |
+| **R² of λ** | 1 − (SS_res / SS_tot) | Measures proportion of variance explained. |
+
+
 
 ### Secondary Metrics (Portfolio Impact)
 
@@ -240,7 +242,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 |--------|------------|----------|
 | **Realized Volatility** | Std dev of portfolio returns | Direct economic measure. |
 | **Turnover** | Mean absolute weight change | Practical cost consideration. |
-| **Sharpe Ratio** | \(\frac{R - R_f}{\sigma}\) | Risk-adjusted performance. |
+| **Sharpe Ratio** | (R − R_f) / σ | Risk-adjusted performance. |
 | **Maximum Drawdown** | Max peak-to-trough decline | Tail risk measure. |
 
 ### Statistical Tests
@@ -356,16 +358,17 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 | Symbol | Description |
 |--------|-------------|
-| \(S_t\) | Sample covariance matrix at time \(t\). |
-| \(I\) | Identity matrix (shrinkage target). |
-| \(\lambda\) | Shrinkage intensity (scalar in \([0,1]\)). |
-| \(\Sigma_{\text{realized}, t+H}\) | Realized covariance over next \(H\) days. |
-| \(\|\cdot\|_F\) | Frobenius norm. |
-| \(\lambda^*_t\) | Optimal shrinkage intensity for window \(t\). |
-| \(d_F\) | Frobenius distance between covariance matrices. |
-| \(\text{VIX}_t\) | CBOE Volatility Index at time \(t\). |
-| \(n\) | Number of assets in portfolio. |
-| \(H\) | Prediction horizon (20 trading days). |
+| S_t | Sample covariance matrix at time t. |
+| I | Identity matrix (shrinkage target). |
+| λ | Shrinkage intensity (scalar in [0,1]). |
+| Σ_realized, t+H | Realized covariance over next H days. |
+| ‖·‖_F | Frobenius norm. |
+| λ*_t | Optimal shrinkage intensity for window t. |
+| d_F | Frobenius distance between covariance matrices. |
+| VIX_t | CBOE Volatility Index at time t. |
+| n | Number of assets in portfolio. |
+| H | Prediction horizon (20 trading days). |
+
 
 ---
 
