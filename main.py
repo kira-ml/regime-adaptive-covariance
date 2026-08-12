@@ -14,6 +14,7 @@ from src.evaluation import (plot_lambdas_over_time, plot_frobenius_comparison,
                            plot_feature_correlation, save_metrics)
 from src.feature_engineering import run_feature_engineering
 from src.elastic_net import evaluate_elastic_net_on_covariance
+from src.statistical_tests import run_statistical_tests
 
 
 def main():
@@ -268,6 +269,58 @@ def main():
     else:
         print("WARNING: No test windows available for portfolio evaluation.")
         portfolio_results = None
+
+    # ============================================
+    # STATISTICAL TESTS (NEW STEP)
+    # ============================================
+    print("\n" + "=" * 60)
+    print("STATISTICAL TESTS: Diebold-Mariano & Bootstrap")
+    print("=" * 60)
+
+    from src.statistical_tests import run_statistical_tests
+
+    stats_results = run_statistical_tests(
+        window_data=window_data,
+        lambdas_df=lambdas_df,
+        baseline_metrics=baseline_metrics,
+        lw_metrics=lw_metrics,
+        test_idx=split['test']
+    )
+
+    # Print results
+    print("\n=== Diebold-Mariano Test (Frobenius Distance) ===")
+    for name, res in stats_results['diebold_mariano'].items():
+        print(f"{name}:")
+        print(f"  DM statistic: {res['statistic']:.4f}")
+        print(f"  p-value: {res['p_value']:.4f}")
+        print(f"  H0: {res['h0']}")
+
+    print("\n=== Bootstrap Test (Volatility Difference) ===")
+    alpha = 0.05  # Significance level for 95% CI
+    for name, res in stats_results['bootstrap'].items():
+        print(f"{name}:")
+        print(f"  Mean diff (method1 - method2): {res['mean_diff']:.6f}")
+        print(f"  {1-alpha:.0%} CI: [{res['ci_lower']:.6f}, {res['ci_upper']:.6f}]")
+        print(f"  p-value (one-sided): {res['p_value']:.4f}")
+
+    # Save results
+    import json
+    # Convert numpy arrays to lists for JSON serialization
+    def convert_for_json(obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.float32) or isinstance(obj, np.float64):
+            return float(obj)
+        return obj
+
+    stats_json = {}
+    for key, val in stats_results.items():
+        stats_json[key] = convert_for_json(val)
+
+    with open('results/statistical_tests.json', 'w') as f:
+        json.dump(stats_json, f, indent=2)
+    print("\nSaved statistical test results to: results/statistical_tests.json")
+
 
     # ============================================
     # SUB-PERIOD ANALYSIS

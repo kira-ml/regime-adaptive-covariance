@@ -34,6 +34,14 @@ ADVANCED_SETS = {
         'avg_eigenvalue',
         'avg_correlation'
     ],
+    'VIX+Interaction': [
+        'vix_level',
+        'vix_x_realized_vol'
+    ],
+    'VIX+Rolling': [
+        'vix_level',
+        'vix_rolling_60'
+    ],
     'All': [
         'vix_level',
         'vix_percentile',
@@ -44,11 +52,13 @@ ADVANCED_SETS = {
         'max_drawdown',
         'condition_number',
         'trace',
-        'avg_eigenvalue'
+        'avg_eigenvalue',
+        # --- New features ---
+        'vix_x_realized_vol',
+        'vix_level_lag5',
+        'vix_rolling_60'
     ]
 }
-
-
 # ----------------------------------------------------------------------
 # Feature engineering class
 # ----------------------------------------------------------------------

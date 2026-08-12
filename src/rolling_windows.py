@@ -137,6 +137,22 @@ def compute_regime_features(returns, vix, windows):
         # 10. Average eigenvalue magnitude
         avg_eigenvalue = eigvals.mean()
         
+        # ============================================================
+        # NEW ENGINEERED FEATURES (added for fair comparison testing)
+        # ============================================================
+        
+        # 11. Interaction: VIX × realized volatility
+        vix_x_realized_vol = vix_level * realized_vol
+        
+        # 12. Lag: VIX level from 5 trading days ago (if available)
+        vix_level_lag5 = window_vix.iloc[-6] if len(window_vix) >= 6 else vix_level
+        
+        # 13. Rolling mean: 60-day rolling average of VIX (end of window)
+        vix_rolling_60 = window_vix.tail(60).mean() if len(window_vix) >= 60 else vix_level
+        
+        # ============================================================
+        # APPEND ALL FEATURES TO DICTIONARY
+        # ============================================================
         features.append({
             'window_id': len(features),
             'vix_level': vix_level,
@@ -148,7 +164,11 @@ def compute_regime_features(returns, vix, windows):
             'max_drawdown': max_drawdown,
             'condition_number': condition_number,
             'trace': trace,
-            'avg_eigenvalue': avg_eigenvalue
+            'avg_eigenvalue': avg_eigenvalue,
+            # --- New features ---
+            'vix_x_realized_vol': vix_x_realized_vol,
+            'vix_level_lag5': vix_level_lag5,
+            'vix_rolling_60': vix_rolling_60
         })
     
     print(f"Computed regime features for {len(features)} windows")
