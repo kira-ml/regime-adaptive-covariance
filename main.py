@@ -12,6 +12,7 @@ from src.baselines import constant_shrinkage, evaluate_constant_baseline
 from src.baselines import vix_threshold_baseline, rolling_average_baseline
 from src.evaluation import (plot_lambdas_over_time, plot_frobenius_comparison, 
                            plot_feature_correlation, save_metrics)
+from src.feature_engineering import run_feature_engineering
 
 
 def main():
@@ -112,7 +113,9 @@ def main():
     # Save lambdas to CSV
     lambdas_df.to_csv('data/processed/optimal_lambdas.csv', index=False)
     print("Saved optimal lambdas to: data/processed/optimal_lambdas.csv")
-    
+
+
+
     # ============================================
     # 5. BASELINE MODELS
     # ============================================
@@ -155,6 +158,30 @@ def main():
     lw_metrics = ledoit_wolf_baseline(window_data)
 
 
+
+    # ============================================
+    # FEATURE ENGINEERING (NEW STEP)
+    # ============================================
+    print("\n" + "=" * 60)
+    print("FEATURE ENGINEERING: Baseline vs Advanced Sets")
+    print("=" * 60)
+    
+    from src.feature_engineering import run_feature_engineering
+    
+    comparison, engineer = run_feature_engineering(
+        features_path='data/processed/regime_features.csv',
+        lambdas_path='data/processed/optimal_lambdas.csv',
+        train_indices=split['train'],
+        val_indices=split['val'],
+        test_indices=split['test']
+    )
+    
+    # Save comparison
+    comparison.to_csv('results/feature_set_comparison.csv', index=False)
+    print("Saved feature set comparison to: results/feature_set_comparison.csv")
+
+
+    
     # ============================================
     # PORTFOLIO EVALUATION (TEST SET ONLY)
     # ============================================
