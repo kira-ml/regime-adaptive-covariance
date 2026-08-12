@@ -15,6 +15,7 @@ from src.evaluation import (plot_lambdas_over_time, plot_frobenius_comparison,
 from src.feature_engineering import run_feature_engineering
 from src.elastic_net import evaluate_elastic_net_on_covariance
 from src.statistical_tests import run_statistical_tests
+from src.xgboost_model import evaluate_xgboost_on_covariance
 
 
 def main():
@@ -233,6 +234,46 @@ def main():
         'best_l1_ratio': en_metrics['best_params']['l1_ratio']
     }]).to_csv('results/elastic_net_results.csv', index=False)
     print("Saved Elastic Net results to: results/elastic_net_results.csv")
+
+
+
+    # ============================================
+    # XGBOOST (NEW STEP - For Testing/Completeness)
+    # ============================================
+    print("\n" + "=" * 60)
+    print("XGBOOST: Using Best Feature Set (VIX-Only)")
+    print("=" * 60)
+
+    xgb_metrics = evaluate_xgboost_on_covariance(
+        window_data=window_data,
+        lambdas_df=lambdas_df,
+        feature_cols=feature_cols,
+        train_idx=split['train'],
+        val_idx=split['val'],
+        test_idx=split['test'],
+        features_df=features_df
+    )
+
+    print(f"\n=== XGBoost Results (Test Set) ===")
+    print(f"Best hyperparameters: {xgb_metrics['best_params']}")
+    print(f"RMSE of λ prediction: {xgb_metrics['rmse']:.6f}")
+    print(f"R² of λ prediction: {xgb_metrics['r2']:.4f}")
+    print(f"Mean Frobenius distance: {xgb_metrics['mean_frobenius']:.4f} (+/- {xgb_metrics['std_frobenius']:.4f})")
+
+    # Save results
+    pd.DataFrame([{
+        'model': 'XGBoost',
+        'feature_set': best_set_name,
+        'rmse_lambda': xgb_metrics['rmse'],
+        'r2_lambda': xgb_metrics['r2'],
+        'mean_frobenius': xgb_metrics['mean_frobenius'],
+        'std_frobenius': xgb_metrics['std_frobenius'],
+        'best_max_depth': xgb_metrics['best_params']['max_depth'],
+        'best_learning_rate': xgb_metrics['best_params']['learning_rate'],
+        'best_n_estimators': xgb_metrics['best_params']['n_estimators'],
+        'best_subsample': xgb_metrics['best_params']['subsample']
+    }]).to_csv('results/xgboost_results.csv', index=False)
+    print("Saved XGBoost results to: results/xgboost_results.csv")
 
     # ============================================
     # PORTFOLIO EVALUATION (TEST SET ONLY)
