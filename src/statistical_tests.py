@@ -203,8 +203,8 @@ def run_statistical_tests(window_data, lambdas_df, baseline_metrics, lw_metrics,
     vol_opt = np.array(volatilities['Optimal'])
 
     # --- Diebold-Mariano tests (Frobenius) ---
-    dm_lw_vs_const = diebold_mariano_test(frob_lw, frob_constant)
-    dm_opt_vs_const = diebold_mariano_test(frob_optimal, frob_constant)
+    dm_lw_vs_const = diebold_mariano_test(frob_lw, frob_constant, h=10)
+    dm_opt_vs_const = diebold_mariano_test(frob_optimal, frob_constant, h=10)
 
     # --- Bootstrap tests (Volatility) ---
     boot_lw_vs_const = bootstrap_volatility_difference(vol_lw, vol_const)

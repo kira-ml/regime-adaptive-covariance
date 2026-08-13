@@ -155,15 +155,16 @@ def evaluate_xgboost_on_covariance(window_data, lambdas_df, feature_cols, train_
     # Compute Frobenius distances for test set
     frob_dists = []
     for idx, w in enumerate(window_data):
-        if idx not in test_idx:
-            continue
-        S = w['S']
-        realized = w['realized']
-        n = S.shape[0]
-        I = np.eye(n)
-        lam = y_pred[list(test_idx).index(idx)] if idx in test_idx else 0.0
-        S_est = (1 - lam) * S + lam * I
-        frob_dists.append(frobenius_distance(S_est, realized))
+            if idx not in test_idx:
+                continue
+            S = w['S']
+            realized = w['realized']
+            n = S.shape[0]
+            I = np.eye(n)
+            lam = y_pred[list(test_idx).index(idx)] if idx in test_idx else 0.0
+            lam = np.clip(lam, 0.0, 1.0)  # <-- ADD THIS LINE
+            S_est = (1 - lam) * S + lam * I
+            frob_dists.append(frobenius_distance(S_est, realized))
 
     metrics['mean_frobenius'] = np.mean(frob_dists)
     metrics['std_frobenius'] = np.std(frob_dists)

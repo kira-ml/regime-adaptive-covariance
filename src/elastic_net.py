@@ -173,6 +173,7 @@ def evaluate_elastic_net_on_covariance(window_data, lambdas_df, feature_cols, tr
         n = S.shape[0]
         I = np.eye(n)
         lam = y_pred[list(test_idx).index(idx)] if idx in test_idx else 0.0
+        lam = np.clip(lam, 0.0, 1.0)  # <-- ADD THIS LINE
         S_est = (1 - lam) * S + lam * I
         frob_dists.append(frobenius_distance(S_est, realized))
 

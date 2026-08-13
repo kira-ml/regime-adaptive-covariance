@@ -196,8 +196,7 @@ class FeatureEngineer:
         rmse = np.sqrt(np.mean((y_test - y_pred) ** 2))
         ss_res = np.sum((y_test - y_pred) ** 2)
         ss_tot = np.sum((y_test - np.mean(y_test)) ** 2)
-        r2_raw = 1 - (ss_res / ss_tot) if ss_tot != 0 else np.nan
-        r2 = max(0.0, r2_raw)  # Floor at 0 for interpretability
+        r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else np.nan
 
         return {'rmse': rmse, 'r2': r2, 'n_features': len(feature_cols)}
 

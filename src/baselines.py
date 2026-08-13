@@ -181,17 +181,26 @@ def vix_threshold_baseline(window_data, lambdas_df_train, lambdas_df_all, vix_fe
                 best_threshold_low = threshold_low
                 best_threshold_high = threshold_high
     
-    # Apply best thresholds to ALL windows
+    # Pre-compute regime averages from TRAINING data only
+    train_vix_levels = np.array([f['vix_level'] for f in vix_features_train])
+    train_lambdas = optimal_lambdas_train  # Already computed from training data
+
+    # Compute mean λ for each regime using training data only
+    low_regime_lambda = train_lambdas[train_vix_levels < best_threshold_low].mean() if np.any(train_vix_levels < best_threshold_low) else 0.0
+    mid_regime_lambda = train_lambdas[(train_vix_levels >= best_threshold_low) & (train_vix_levels < best_threshold_high)].mean() if np.any((train_vix_levels >= best_threshold_low) & (train_vix_levels < best_threshold_high)) else 0.0
+    high_regime_lambda = train_lambdas[train_vix_levels >= best_threshold_high].mean() if np.any(train_vix_levels >= best_threshold_high) else 0.0
+
+    # Apply fixed regime averages to ALL windows (no look-ahead)
     all_vix_levels = np.array([f['vix_level'] for f in vix_features_all])
     lambda_pred_full = np.zeros(len(all_vix_levels))
-    
+
     for i, vix in enumerate(all_vix_levels):
         if vix < best_threshold_low:
-            lambda_pred_full[i] = full_optimal_lambdas[all_vix_levels < best_threshold_low].mean()
+            lambda_pred_full[i] = low_regime_lambda
         elif vix < best_threshold_high:
-            lambda_pred_full[i] = full_optimal_lambdas[(all_vix_levels >= best_threshold_low) & (all_vix_levels < best_threshold_high)].mean()
+            lambda_pred_full[i] = mid_regime_lambda
         else:
-            lambda_pred_full[i] = full_optimal_lambdas[all_vix_levels >= best_threshold_high].mean()
+            lambda_pred_full[i] = high_regime_lambda
     
     distances = []
     for idx, w in enumerate(window_data):
