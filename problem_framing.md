@@ -14,17 +14,16 @@
 
 Covariance matrix estimation is fundamental to portfolio construction and risk management. Standard practice uses shrinkage estimators (Ledoit-Wolf, 2004) that apply a single, data-driven shrinkage intensity to all periods. This assumes that the optimal shrinkage intensity is constant or varies only with sample properties (dimension, sample size).
 
-**This is almost certainly false.** Markets exhibit distinct regimes—low volatility, high volatility, crisis, recovery—and the optimal trade-off between sample covariance and a structured target likely varies across these regimes. A static estimator will be systematically wrong in certain market conditions.
+**This assumption is questionable.** Markets exhibit distinct regimes—low volatility, high volatility, crisis, recovery—and the optimal trade-off between sample covariance and a structured target likely varies across these regimes. However, whether this variation is large enough to be exploitable, and whether market features can predict it, remains an empirical question.
 
 ### Why This Is a Machine Learning Problem
 
 The relationship between market conditions and optimal shrinkage is:
 - **Complex**: Multiple features (volatility, correlation structure, market stress) likely interact.
-- **Non-linear**: The effect of VIX on optimal \(\lambda\) is probably not linear.
 - **Unknown**: No closed-form solution exists for regime-dependent optimal \(\lambda\).
-- **Predictable**: Market conditions are observable and contain forward-looking information.
+- **Testable**: If a relationship exists, supervised learning can potentially uncover it.
 
-This makes it a natural candidate for supervised learning—predict the optimal \(\lambda\) from observable market features.
+This makes it a natural candidate for supervised learning—predict the optimal \(\lambda\) from observable market features, and test whether the predictions improve out-of-sample performance.
 
 ### What This Project Does Not Claim
 
@@ -35,11 +34,25 @@ This makes it a natural candidate for supervised learning—predict the optimal 
 
 ### What This Project Actually Does
 
-**Empirically tests whether market regime information improves out-of-sample covariance shrinkage predictions compared to static approaches.** It does so by framing the problem as a supervised regression task, testing multiple feature sets, and evaluating both covariance accuracy and portfolio-level economic impact.
+**Empirically tests whether market regime information improves out-of-sample covariance shrinkage predictions compared to static approaches.** It frames the problem as a supervised regression task, tests multiple feature sets, and evaluates both covariance accuracy and portfolio-level economic impact. The results are reported transparently—including successes and failures.
 
 ---
 
-## 3. Problem Framing (Machine Learning Formulation)
+## 3. Core Empirical Finding (Critical Context)
+
+A key finding from this project is that **the optimal shrinkage intensity λ* is near-zero across all windows** in our 50-stock universe.
+
+- **Mean λ*:** 0.000034
+- **Standard deviation:** 0.000346
+- **Maximum λ*:** 0.004 (observed only during peak COVID volatility)
+
+This means that for this dataset, **the sample covariance matrix is already well-conditioned**, and shrinkage toward the identity matrix provides little benefit. Consequently, the target variable has almost no variance to predict—rendering regime-adaptive shrinkage largely unnecessary.
+
+This finding shapes all subsequent results and interpretations.
+
+---
+
+## 4. Problem Framing (Machine Learning Formulation)
 
 ### Task Type
 **Supervised regression** (predicting a continuous target: \(\lambda \in [0,1]\)).
@@ -96,7 +109,7 @@ Features must be **observable at time \(t\)** (no look-ahead).
 
 ---
 
-## 4. Research Questions
+## 5. Research Questions
 
 ### Primary Research Question
 **Does incorporating market regime features into a supervised learning model improve out-of-sample predictions of optimal shrinkage intensity compared to a static baseline?**
@@ -108,7 +121,7 @@ Features must be **observable at time \(t\)** (no look-ahead).
 
 ---
 
-## 5. Hypotheses
+## 6. Hypotheses
 
 ### H1: Predictive Signal Exists
 **H₁₀:** All regime features have zero predictive power (\(R^2 = 0\)).  
@@ -130,7 +143,7 @@ Features must be **observable at time \(t\)** (no look-ahead).
 
 ---
 
-## 6. Baseline Models
+## 7. Baseline Models
 
 ### Baseline 1: Constant Optimal Shrinkage (Primary Benchmark)
 **Method:** Apply the average optimal \(\lambda\) from the training set to all test windows.
@@ -182,27 +195,19 @@ $$
 
 ---
 
-## 7. Advanced Model
+## 8. Advanced Models
 
-### Elastic Net (Regularized Linear Regression)
+### 8.1 Elastic Net (Regularized Linear Regression)
 **Method:** Linear regression with L1 + L2 regularization.
 
 $$
 \lambda_{\text{pred}} = \beta_0 + \sum_i \beta_i \cdot \text{feature}_i
 $$
 
-**Why this is the advanced model (not Gradient Boosting):**
-
+**Why this is the primary ML model:**
 1. **Simplicity:** Linear models are interpretable, which is valuable for understanding which features matter.
 2. **Regularization:** Elastic Net handles correlated features (common in finance).
-3. **Performance:** For problems with ~10 features and ~2000 samples, linear models often perform comparably to non-linear models.
-4. **Baseline progression:** If Elastic Net fails, non-linear models are unlikely to succeed (Occam's razor).
-5. **Economic interpretation:** Coefficients directly tell us which regime features matter and in what direction.
-
-**Model Selection Rationale:**
-- **Not Gradient Boosting:** Only introduce non-linearity if linear models systematically underperform.
-- **Not Deep Learning:** Dataset is too small; interpretability is lost.
-- **Not Random Forest:** Less interpretable than Elastic Net; no clear advantage for this problem.
+3. **Baseline progression:** If Elastic Net fails, non-linear models are unlikely to succeed (Occam's razor).
 
 **Hyperparameter Tuning:**
 - \(\alpha\) (L1 ratio): 0.1, 0.3, 0.5, 0.7, 0.9.
@@ -211,7 +216,7 @@ $$
 
 ---
 
-### 7.1 Robustness Check: XGBoost
+### 8.2 Robustness Check: XGBoost
 
 To test whether a non-linear model could capture relationships missed by Elastic Net, **XGBoost** was evaluated as a robustness check using the same VIX-Only feature set and train/validation/test split.
 
@@ -224,7 +229,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 8. Evaluation Framework
+## 9. Evaluation Framework
 
 ### Primary Metrics (Covariance Estimation)
 
@@ -233,8 +238,6 @@ To test whether a non-linear model could capture relationships missed by Elastic
 | **Frobenius Distance** | ‖Σ_est − Σ_real‖_F | Primary metric; directly measures estimation error. |
 | **RMSE of λ** | √(mean((λ_pred − λ*)²)) | Measures prediction accuracy of the target. |
 | **R² of λ** | 1 − (SS_res / SS_tot) | Measures proportion of variance explained. |
-
-
 
 ### Secondary Metrics (Portfolio Impact)
 
@@ -247,7 +250,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ### Statistical Tests
 
-1. **Diebold-Mariano Test:** Compares predictive accuracy of two models (constant vs. dynamic).
+1. **Diebold-Mariano Test:** Compares predictive accuracy of two models (constant vs. dynamic). Uses Newey-West correction for overlapping windows.
 2. **Bootstrap Confidence Intervals:** For volatility differences.
 3. **Sub-period Analysis:** Performance across distinct market regimes.
 
@@ -261,7 +264,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 9. Success Criteria
+## 10. Success Criteria
 
 ### Statistical Success
 - At least one dynamic model significantly outperforms Constant Shrinkage (\(p < 0.05\), Diebold-Mariano).
@@ -279,7 +282,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 10. Risk Controls & Validation
+## 11. Risk Controls & Validation
 
 ### Look-Ahead Bias
 - Strict chronological data split.
@@ -299,7 +302,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 11. Data Sources
+## 12. Data Sources
 
 ### Primary Dataset
 
@@ -316,9 +319,9 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 12. Project Scope & Deliverables
+## 13. Project Scope & Deliverables
 
-### Completed (Weeks 1–2)
+### Completed
 - 50-stock data pipeline (2000–2025).
 - 4 baseline models (Constant, VIX Threshold, Rolling Average, Ledoit-Wolf).
 - Feature set selection (7 sets tested; VIX-Only best).
@@ -338,7 +341,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 ---
 
-## 13. References
+## 14. References
 
 1. Ledoit, O., & Wolf, M. (2004). A well-conditioned estimator for large-dimensional covariance matrices. *Journal of Multivariate Analysis*, 88(2), 365-411.
 
@@ -368,7 +371,6 @@ To test whether a non-linear model could capture relationships missed by Elastic
 | VIX_t | CBOE Volatility Index at time t. |
 | n | Number of assets in portfolio. |
 | H | Prediction horizon (20 trading days). |
-
 
 ---
 
