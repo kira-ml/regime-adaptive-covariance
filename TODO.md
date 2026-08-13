@@ -365,7 +365,98 @@ If something breaks, check:
 5. Feature engineering import errors
 
 ---
+ 
 
-**Last Updated**: August 10, 2026 - 2:00 AM
-**Project Status**: ✅ Week 1 Complete — Sub-Period Analysis Reveals Key Finding
-**Next Milestone**: Week 2 — Feature Engineering + 50 Stocks + Statistical Tests
+## ✅ Updated August 13, 2026 Entry (Corrected)
+
+---
+
+### August 13, 2026 - Day 5: Statistical Fixes, Pipeline Re-Run, Data Validation & LinkedIn PDF Finalization
+
+#### What Was Accomplished
+
+**1. Statistical & Mathematical Bug Fixes (Critical)**
+- Fixed ML model predictions: added `np.clip(lam, 0.0, 1.0)` to Elastic Net and XGBoost to ensure λ stays within the valid [0,1] range.
+- Removed look-ahead bias from VIX Threshold baseline: regime averages are now computed **only from training data** and applied to all windows.
+- Removed artificial R² floor (`max(0.0, r2_raw)`) from feature engineering to report true negative R² (-0.0228).
+- Updated Diebold-Mariano test to use **Newey-West correction (`h=10`)** to account for overlapping windows.
+
+**2. Full Pipeline Re-Run (50 Stocks)**
+- Re-ran `python main.py` with the corrected codebase.
+- Total windows processed: **2,879**.
+- Confirmed λ* mean = `0.000034` (near-zero).
+- Elastic Net and XGBoost RMSE = `0.000530`; R² = `-0.0228`.
+- Ledoit-Wolf mean Frobenius = `0.01172`; Constant = `0.01214`.
+- Ledoit-Wolf volatility (test set) = `0.008385`; Constant = `0.010099` ( **~17% reduction** ).
+- Diebold-Mariano (Ledoit-Wolf vs Constant): statistic = `-3.14`, p = `0.0017` (statistically significant).
+- Bootstrap (volatility): Ledoit-Wolf vs Constant p = `0.0000`.
+
+**3. Data Validation (Cross-Checked Against Results Files)**
+- Verified every number in the output against the actual CSV/JSON files:
+  - `metrics.csv` → mean λ*, std λ*
+  - `portfolio_metrics_test.csv` → Ledoit-Wolf and Constant volatility
+  - `elastic_net_results.csv` / `xgboost_results.csv` → ML Frobenius distances
+  - `statistical_tests.json` → DM statistic, p-values, bootstrap confidence intervals
+- **Result:** All numbers were confirmed accurate. No discrepancies found.
+
+**4. Problem Framing & README Updates**
+- Updated `problem_framing.md` to reflect the validated results:
+  - Added a new **Core Empirical Finding** section (λ* is near-zero).
+  - Reframed research questions and hypotheses to be realistic.
+  - Aligned success criteria with actual outcomes (Ledoit-Wolf passes; ML fails).
+- Updated `README.md` with corrected statistical tests, negative R², and honest success criteria.
+
+**5. LinkedIn PDF Summary Generator (ReportLab)**
+- Created `src/generate_linkedin_pdf.py` to generate a **3-page, modern, academic-style PDF** for LinkedIn posting.
+- Used **ReportLab** (pure Python, no external GTK dependencies).
+- Embedded 3 key figures:
+  - `linkedin_plot1_lambda_over_time.png` (λ* over time)
+  - `linkedin_plot2_frobenius_comparison.png` (Covariance accuracy)
+  - `linkedin_plot3_sub_period_heatmap.png` (Portfolio volatility by regime)
+- Implemented robust Times New Roman font registration (multiple Windows paths + fallback).
+- PDF dynamically reads from:
+  - `metrics.csv` (λ mean, std)
+  - `portfolio_metrics_test.csv` (volatility)
+  - `elastic_net_results.csv` / `xgboost_results.csv` (Frobenius)
+  - `statistical_tests.json` (p-values)
+- **Result:** PDF automatically updates if results change — no hardcoded numbers.
+
+**6. Final Validation of PDF Content**
+- Cross-checked every number in the PDF against the actual CSV/JSON files:
+  - **Mean λ*:** `metrics.csv` → `3.40e-05` ✅
+  - **Std λ*:** `metrics.csv` → `0.00035` ✅
+  - **Constant Volatility:** `portfolio_metrics_test.csv` → `0.01010` ✅
+  - **Ledoit-Wolf Volatility:** `portfolio_metrics_test.csv` → `0.00839` ✅
+  - **Volatility Reduction:** Calculated → `~17%` ✅
+  - **DM p-value:** `statistical_tests.json` → `0.0017` ✅
+  - **Frobenius Distances:** Verified against `elastic_net_results.csv`, `xgboost_results.csv`, and `stat_tests.json` ✅
+- **GitHub Link:** Updated to `https://github.com/kira-ml/regime-adaptive-covariance.git` ✅
+
+**7. Git Commits Pushed**
+- "Fix statistical and mathematical validity issues: clip ML predictions to [0,1], remove VIX baseline look-ahead bias, stop flooring R² at 0, and add autocorrelation correction (h=10) to Diebold-Mariano tests"
+- "Update problem_framing.md to reflect validated results: add core finding (λ* near-zero), reframe hypotheses, and align success criteria with actual outcomes"
+- "Update README.md with corrected results: reflect validated statistical tests, near-zero λ* finding, negative R², and honest success criteria"
+- "Create LinkedIn PDF generator using ReportLab with validated data and modern academic styling"
+- "Fix Unicode rendering and GitHub link in LinkedIn PDF generator"
+
+---
+
+### Summary of the Day
+
+| Milestone | Status |
+|-----------|--------|
+| Statistical bugs fixed (clipping, VIX look-ahead, R² floor, DM correction) | ✅ Complete |
+| Full pipeline re-run with 50 stocks (2,879 windows) | ✅ Complete |
+| Data validation against CSV/JSON files | ✅ Complete |
+| Problem framing & README updated | ✅ Complete |
+| LinkedIn PDF generator created | ✅ Complete |
+| PDF content validated against source data | ✅ Complete |
+| All changes pushed to GitHub | ✅ Complete |
+
+---
+
+**Last Updated**: August 13, 2026 - 11:30 PM  
+**Project Status**: ✅ Statistical validity restored; pipeline re-run; LinkedIn PDF finalized  
+**Next Milestone**: Paper drafting and submission preparation
+
+
