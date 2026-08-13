@@ -15,16 +15,19 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ==============================================================================
 # 1. CONFIGURATION
 # ==============================================================================
-RESULTS_DIR = r"D:\quant-finance-ml\regime-adaptive-covariance\results\figures"
+# UPDATED: Pointing to the new "updated_viz" folder with your modern plots
+RESULTS_DIR = r"D:\quant-finance-ml\regime-adaptive-covariance\results\figures\updated_viz"
 OUTPUT_PDF = "LinkedIn_Project_Summary.pdf"
 
 IMAGES = {
-    "lambda_plot": os.path.join(RESULTS_DIR, "linkedin_plot1_lambda_over_time.png"),
-    "frobenius_plot": os.path.join(RESULTS_DIR, "linkedin_plot2_frobenius_comparison.png"),
-    "heatmap": os.path.join(RESULTS_DIR, "linkedin_plot3_sub_period_heatmap.png"),
+    # Updated image paths to use the new modern visualizations
+    "frobenius_bar": os.path.join(RESULTS_DIR, "frobenius_bar_chart.png"),
+    "sub_period_heatmap": os.path.join(RESULTS_DIR, "sub_period_heatmap.png"),
+    "frobenius_histogram": os.path.join(RESULTS_DIR, "frobenius_histogram.png"),
+    "sub_period_line": os.path.join(RESULTS_DIR, "sub_period_line.png"),
 }
 
-# Data files
+# Data files (unchanged - reads your actual results)
 DATA_DIR = r"D:\quant-finance-ml\regime-adaptive-covariance\results"
 DATA_FILES = {
     "metrics": os.path.join(DATA_DIR, "metrics.csv"),
@@ -543,7 +546,7 @@ def create_academic_method_table():
 # ==============================================================================
 
 def generate_pdf():
-    print("🖨️ Generating academic LinkedIn PDF with actual data...")
+    print("🖨️ Generating academic LinkedIn PDF with updated modern visualizations...")
     
     doc = SimpleDocTemplate(
         OUTPUT_PDF,
@@ -557,7 +560,7 @@ def generate_pdf():
     story = []
 
     # ======================================================================
-    # PAGE 1: HEADER + INTRODUCTION + LAMBDA PLOT
+    # PAGE 1: HEADER + INTRODUCTION + FROBENIUS BAR CHART
     # ======================================================================
     
     story.extend(create_academic_hook(
@@ -610,9 +613,10 @@ def generate_pdf():
     
     story.append(Spacer(1, 0.03 * inch))
     
-    if IMAGES["lambda_plot"] and os.path.exists(IMAGES["lambda_plot"]):
-        story.append(Image(IMAGES["lambda_plot"], width=6.8*inch, height=2.6*inch))
-        story.append(Paragraph("Figure 1: Optimal shrinkage intensity (\u03bb*) over the full sample period", style_caption))
+    # MODERN VISUAL 1: Frobenius Bar Chart
+    if IMAGES["frobenius_bar"] and os.path.exists(IMAGES["frobenius_bar"]):
+        story.append(Image(IMAGES["frobenius_bar"], width=6.8*inch, height=3.0*inch))
+        story.append(Paragraph("Figure 1: Out-of-sample covariance estimation accuracy (Frobenius distance)", style_caption))
     
     story.append(Paragraph("Models Evaluated", style_section))
     story.append(Paragraph(
@@ -627,12 +631,33 @@ def generate_pdf():
     story.append(PageBreak())
     
     # ======================================================================
-    # PAGE 2: FROBENIUS PLOT + DETAILED RESULTS
+    # PAGE 2: HEATMAP + DETAILED RESULTS + STATS
     # ======================================================================
     
-    if IMAGES["frobenius_plot"] and os.path.exists(IMAGES["frobenius_plot"]):
-        story.append(Image(IMAGES["frobenius_plot"], width=6.8*inch, height=2.8*inch))
-        story.append(Paragraph("Figure 2: Out-of-sample covariance estimation accuracy (Frobenius distance)", style_caption))
+    story.append(Paragraph("Portfolio Implications", style_section))
+    story.append(Paragraph(
+        "To assess economic significance, we constructed minimum-variance portfolios "
+        "using each covariance estimate and evaluated their realized volatility. "
+        "Ledoit-Wolf consistently delivered the lowest out-of-sample volatility. "
+        f"Across the 2020\u20132025 test period, Ledoit-Wolf reduced portfolio volatility "
+        f"by an average of {vol_reduction:.1f}% relative to constant shrinkage, "
+        f"with improvements ranging from {min_improvement:.1f}% to {max_improvement:.1f}% "
+        "depending on the market regime.",
+        style_body
+    ))
+    
+    story.append(Paragraph(
+        "<i>Note:</i> Portfolios were constructed as unconstrained minimum-variance "
+        "(allowing short sales). This represents a theoretical benchmark; practical "
+        "implementations with long-only constraints would likely yield smaller but "
+        "directionally consistent improvements.",
+        style_body_small
+    ))
+    
+    # MODERN VISUAL 2: Sub-Period Heatmap
+    if IMAGES["sub_period_heatmap"] and os.path.exists(IMAGES["sub_period_heatmap"]):
+        story.append(Image(IMAGES["sub_period_heatmap"], width=6.8*inch, height=3.0*inch))
+        story.append(Paragraph("Figure 2: Portfolio volatility by method and market regime (test set only)", style_caption))
     
     story.append(Paragraph("Summary of Key Results", style_section))
     
@@ -688,32 +713,21 @@ def generate_pdf():
     story.append(PageBreak())
     
     # ======================================================================
-    # PAGE 3: HEATMAP + TAKEAWAYS + GITHUB
+    # PAGE 3: SUB-PERIOD LINE PLOT + TAKEAWAYS + GITHUB
     # ======================================================================
     
-    story.append(Paragraph("Portfolio Implications", style_section))
+    story.append(Paragraph("Regime-Dependent Performance", style_section))
     story.append(Paragraph(
-        "To assess economic significance, we constructed minimum-variance portfolios "
-        "using each covariance estimate and evaluated their realized volatility. "
-        "Ledoit-Wolf consistently delivered the lowest out-of-sample volatility. "
-        f"Across the 2020\u20132025 test period, Ledoit-Wolf reduced portfolio volatility "
-        f"by an average of {vol_reduction:.1f}% relative to constant shrinkage, "
-        f"with improvements ranging from {min_improvement:.1f}% to {max_improvement:.1f}% "
-        "depending on the market regime.",
+        "The chart below illustrates the relative performance of each method compared to "
+        "Constant shrinkage across the four distinct market regimes in the test set. "
+        "Ledoit-Wolf consistently delivers the largest volatility reductions.",
         style_body
     ))
     
-    story.append(Paragraph(
-        "<i>Note:</i> Portfolios were constructed as unconstrained minimum-variance "
-        "(allowing short sales). This represents a theoretical benchmark; practical "
-        "implementations with long-only constraints would likely yield smaller but "
-        "directionally consistent improvements.",
-        style_body_small
-    ))
-    
-    if IMAGES["heatmap"] and os.path.exists(IMAGES["heatmap"]):
-        story.append(Image(IMAGES["heatmap"], width=6.8*inch, height=2.8*inch))
-        story.append(Paragraph("Figure 3: Portfolio volatility by method and market regime (test set only)", style_caption))
+    # MODERN VISUAL 3: Sub-Period Line Plot
+    if IMAGES["sub_period_line"] and os.path.exists(IMAGES["sub_period_line"]):
+        story.append(Image(IMAGES["sub_period_line"], width=6.8*inch, height=2.8*inch))
+        story.append(Paragraph("Figure 3: Relative performance by market regime (vs Constant)", style_caption))
     
     story.append(Paragraph("Principal Takeaways", style_section))
     takeaways = [
