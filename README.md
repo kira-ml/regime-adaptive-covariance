@@ -207,14 +207,25 @@ Strict chronological split eliminates look-ahead bias.
 
 ## 📈 Key Results
 
+### Core Empirical Finding
+A critical finding from this project is that **the optimal shrinkage intensity λ* is near-zero across all windows** in our 50-stock universe.
+
+- **Mean λ*:** 0.000034
+- **Standard deviation:** 0.000346
+- **Maximum λ*:** 0.004 (observed only during peak COVID volatility)
+
+This means that for this dataset, **the sample covariance matrix is already well-conditioned**, and shrinkage toward the identity matrix provides little benefit. Consequently, the target variable has almost no variance to predict—rendering regime-adaptive shrinkage largely unnecessary.
+
+---
+
 ### 1. Feature Set Selection
 
 | Set | RMSE | R² | Winner? |
 |-----|------|----|---------|
-| VIX-Only | 0.000530 | 0.0 | 🏆 Best (simplest) |
-| All others | 0.000530 | 0.0 | Tied |
+| VIX-Only | 0.000530 | -0.0228 | 🏆 Best (simplest) |
+| All others | 0.000530 | -0.0228 | Tied |
 
-**Conclusion:** VIX-Only is the best feature set. Additional engineered features did not improve prediction.
+**Conclusion:** VIX-Only is the best feature set. Additional engineered features did not improve prediction. All feature sets performed identically because the target λ* has near-zero variance.
 
 ---
 
@@ -247,12 +258,14 @@ Strict chronological split eliminates look-ahead bias.
 
 | Test | Comparison | Statistic | p-value |
 |------|------------|-----------|---------|
-| Diebold-Mariano | Ledoit-Wolf vs Constant | -14.38 | **0.0000** |
-| Diebold-Mariano | Optimal vs Constant | -5.07 | **0.0000** |
+| Diebold-Mariano | Ledoit-Wolf vs Constant | -3.14 | **0.0017** |
+| Diebold-Mariano | Optimal vs Constant | -1.23 | 0.2187 |
 | Bootstrap | Ledoit-Wolf vs Constant (volatility) | -0.001713 | **0.0000** |
 | Bootstrap | Optimal vs Constant (volatility) | +0.000188 | 1.0000 |
 
-**Conclusion:** Ledoit-Wolf significantly reduces Frobenius distance and portfolio volatility. The improvement is statistically significant and economically meaningful.
+**Conclusion:** 
+- Ledoit-Wolf significantly reduces Frobenius distance and portfolio volatility (p < 0.01).
+- The "optimal" λ* (which minimizes Frobenius distance) does **not** reduce portfolio volatility—it actually increases it slightly.
 
 ---
 
@@ -273,7 +286,7 @@ Strict chronological split eliminates look-ahead bias.
 
 | Criterion | Result | Status |
 |-----------|--------|--------|
-| Dynamic model beats Constant (p < 0.05) | Ledoit-Wolf: p = 0.0000 | ✅ Passed |
+| Dynamic model beats Constant (p < 0.05) | Ledoit-Wolf: p = 0.0017 | ✅ Passed |
 | ≥5% volatility reduction | ~17% reduction (0.010099 → 0.008385) | ✅ Passed |
 | Consistency across sub-periods | Ledoit-Wolf best in all 4 periods | ✅ Passed |
 | ML model improves over baselines | Elastic Net and XGBoost both underperformed | ⚠️ Failed (but documented) |
