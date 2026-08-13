@@ -88,6 +88,10 @@ else:
     optimal_vol = 0.0102865
     vol_reduction = 16.97
 
+# Get sub-period improvement range
+min_improvement = sub_period_summary['improvement_vs_constant'].min() if not sub_period_summary.empty else 14.0
+max_improvement = sub_period_summary['improvement_vs_constant'].max() if not sub_period_summary.empty else 20.0
+
 # Extract statistical test results
 dm_p_value = stat_tests.get("diebold_mariano", {}).get("Ledoit-Wolf vs Constant", {}).get("p_value", 0.0017)
 bootstrap_p_value = stat_tests.get("bootstrap", {}).get("Ledoit-Wolf vs Constant", {}).get("p_value", 0.0)
@@ -557,34 +561,41 @@ def generate_pdf():
     # ======================================================================
     
     story.extend(create_academic_hook(
-        title_text="Does Market Regime Information Improve Covariance Estimation?",
-        subtitle_text="A Data-Driven Risk Management Project for Systematic Portfolios"
+        title_text="An Empirical Investigation of Regime-Adaptive Covariance Estimation",
+        subtitle_text="Evaluating whether market conditions can improve out-of-sample portfolio risk models"
     ))
     
     story.append(create_academic_divider())
     
     story.append(Paragraph(
-        "When building a portfolio, you need to estimate how assets move together. "
-        "The standard method applies a fixed shrinkage intensity to the covariance matrix. "
-        "But markets change regimes—high volatility, low volatility, crises, recoveries. "
-        "This project tests whether observable market conditions can help predict a better shrinkage intensity.",
+        "A key challenge in portfolio construction is estimating the covariance matrix—"
+        "the statistical measure of how asset returns move together. "
+        "The standard approach applies a constant shrinkage adjustment to the sample covariance matrix. "
+        "However, financial markets exhibit distinct volatility and correlation regimes. "
+        "This project examines whether incorporating observable market conditions can improve "
+        "covariance estimation for portfolio risk management.",
         style_body
     ))
     
-    story.append(Paragraph("What We Did", style_section))
+    story.append(Paragraph("Research Design", style_section))
     story.append(Paragraph(
-        "We used 20 years of daily data (2000–2025) for 50 liquid S&P 500 stocks. "
-        "For each rolling 120-day window, we computed the optimal shrinkage intensity (\u03bb*) "
-        "that minimizes the error between the estimated covariance and the actual future covariance.",
+        "We used 20 years of daily data (2000\u20132025) for 50 liquid S&P 500 stocks. "
+        "For each rolling 120-day estimation window, we computed the optimal shrinkage "
+        "intensity (\u03bb*) that minimizes the Frobenius distance between the estimated "
+        "covariance matrix and the realized covariance over the subsequent 20 trading days. "
+        "This approach frames the problem as a supervised learning task: predict \u03bb* "
+        "from observable market features.",
         style_body
     ))
     
-    story.append(Paragraph("The Surprising Finding", style_section))
+    story.append(Paragraph("Key Empirical Finding", style_section))
     
     finding_data = [
-        [Paragraph(f"<b>\u03bb* is near-zero for almost all windows (mean = {lambda_mean:.2e})</b>", style_highlight_box)],
-        [Paragraph("The sample covariance matrix was already well-conditioned for this 50-stock universe. "
-                   "Shrinkage toward the identity matrix provided almost no benefit.", style_body)],
+        [Paragraph(f"<b>The optimal shrinkage intensity (\u03bb*) was near-zero across all windows (mean = {lambda_mean:.2e})</b>", style_highlight_box)],
+        [Paragraph("For this 50-stock universe, the sample covariance matrix was already well-conditioned. "
+                   "Shrinkage toward the identity matrix provided minimal benefit across most periods. "
+                   "This finding shaped all subsequent comparisons and interpretations.",
+                   style_body)],
     ]
     finding_table = Table(finding_data, colWidths=[6.8 * inch])
     finding_table.setStyle(TableStyle([
@@ -601,13 +612,15 @@ def generate_pdf():
     
     if IMAGES["lambda_plot"] and os.path.exists(IMAGES["lambda_plot"]):
         story.append(Image(IMAGES["lambda_plot"], width=6.8*inch, height=2.6*inch))
-        story.append(Paragraph("Figure 1: Optimal shrinkage intensity (\u03bb*) over time", style_caption))
+        story.append(Paragraph("Figure 1: Optimal shrinkage intensity (\u03bb*) over the full sample period", style_caption))
     
-    story.append(Paragraph("What We Compared", style_section))
+    story.append(Paragraph("Models Evaluated", style_section))
     story.append(Paragraph(
-        "We tested four baselines and two machine learning models. "
-        "The baselines included a constant shrinkage rule, a VIX-based threshold, a rolling average, "
-        "and the industry-standard Ledoit-Wolf estimator. The ML models were Elastic Net and XGBoost.",
+        "We compared four baseline methods\u2014constant shrinkage, a VIX-based threshold rule, "
+        "a rolling average, and the industry-standard Ledoit-Wolf estimator\u2014against two "
+        "machine learning models: Elastic Net (linear with regularization) and XGBoost (tree-based). "
+        "All models were evaluated on a strict chronological out-of-sample test period (2020\u20132025), "
+        "with training data from 2000\u20132015 and validation from 2016\u20132019.",
         style_body
     ))
     
@@ -619,15 +632,15 @@ def generate_pdf():
     
     if IMAGES["frobenius_plot"] and os.path.exists(IMAGES["frobenius_plot"]):
         story.append(Image(IMAGES["frobenius_plot"], width=6.8*inch, height=2.8*inch))
-        story.append(Paragraph("Figure 2: Out-of-sample covariance estimation accuracy", style_caption))
+        story.append(Paragraph("Figure 2: Out-of-sample covariance estimation accuracy (Frobenius distance)", style_caption))
     
-    story.append(Paragraph("Key Results Summary", style_section))
+    story.append(Paragraph("Summary of Key Results", style_section))
     
     stats = [
         ("Mean \u03bb*", f"{lambda_mean:.2e}", COLOR_PRIMARY),
         ("Std \u03bb*", f"{lambda_std:.5f}", COLOR_GRAY),
         ("Volatility Reduction", f"{vol_reduction:.1f}%", COLOR_ACCENT),
-        ("Best Method", "Ledoit-Wolf", COLOR_WARNING),
+        ("Best Performing Method", "Ledoit-Wolf", COLOR_WARNING),
     ]
     stat_grid = create_academic_stat_grid(stats)
     if stat_grid:
@@ -638,16 +651,16 @@ def generate_pdf():
     story.append(Paragraph("Detailed Findings", style_section))
     
     findings_details = [
-        f"• Ledoit-Wolf reduced portfolio volatility by 14\u201320% across all regimes (p = {dm_p_value:.4f})",
-        "• ML models (Elastic Net, XGBoost) underperformed simple baselines (R² = -0.023)",
-        "• VIX-based threshold and rolling average performed identically to constant",
-        "• Reducing Frobenius distance doesn't always reduce portfolio volatility",
+        f"• Ledoit-Wolf achieved the lowest portfolio volatility across all test sub-periods, with reductions ranging from {min_improvement:.1f}% to {max_improvement:.1f}% compared to constant shrinkage (Diebold-Mariano p = {dm_p_value:.4f})",
+        "• Elastic Net and XGBoost performed worse than the constant baseline, with out-of-sample R² = -0.023",
+        "• The VIX-based threshold and rolling average methods performed identically to constant shrinkage",
+        "• Minimizing Frobenius distance did not consistently correspond to minimizing portfolio volatility",
     ]
     for f in findings_details:
         story.append(Paragraph(f, style_bullet))
     
     story.append(Spacer(1, 0.02 * inch))
-    story.append(Paragraph("Method Comparison (Test Set 2020\u20132025)", style_section))
+    story.append(Paragraph("Method Comparison (Test Set: 2020\u20132025)", style_section))
     
     method_table = create_academic_method_table()
     story.append(method_table)
@@ -655,8 +668,10 @@ def generate_pdf():
     story.append(Spacer(1, 0.03 * inch))
     
     insight_data = [
-        [Paragraph("<b>Key Insight:</b> The limitation is not model complexity—it's the lack of signal in \u03bb*. "
-                   "When the target variable has near-zero variance, even the best model cannot find a signal.",
+        [Paragraph("<b>Interpretation:</b> The limitation of the machine learning models was not model complexity—"
+                   "it was the lack of predictive signal in the target variable. "
+                   "With near-zero variance in \u03bb*, even a well-specified model could not outperform "
+                   "the simple historical average.",
                    style_body_small)],
     ]
     insight_table = Table(insight_data, colWidths=[6.8 * inch])
@@ -676,51 +691,56 @@ def generate_pdf():
     # PAGE 3: HEATMAP + TAKEAWAYS + GITHUB
     # ======================================================================
     
-    story.append(Paragraph("What We Found", style_section))
+    story.append(Paragraph("Portfolio Implications", style_section))
     story.append(Paragraph(
-        "Ledoit-Wolf consistently outperformed all other methods in covariance accuracy. "
-        "The two machine learning models performed worse than the simplest constant baseline. "
-        "This suggests that, for this dataset, the limitation is not model complexity—it is the lack of signal in the target variable.",
+        "To assess economic significance, we constructed minimum-variance portfolios "
+        "using each covariance estimate and evaluated their realized volatility. "
+        "Ledoit-Wolf consistently delivered the lowest out-of-sample volatility. "
+        f"Across the 2020\u20132025 test period, Ledoit-Wolf reduced portfolio volatility "
+        f"by an average of {vol_reduction:.1f}% relative to constant shrinkage, "
+        f"with improvements ranging from {min_improvement:.1f}% to {max_improvement:.1f}% "
+        "depending on the market regime.",
         style_body
     ))
     
-    story.append(Paragraph("Does It Matter for Portfolios?", style_section))
     story.append(Paragraph(
-        f"Yes. When we constructed minimum-variance portfolios using each covariance estimate, "
-        "Ledoit-Wolf delivered the lowest realized volatility. "
-        f"It reduced portfolio volatility by {vol_reduction:.1f}% consistently across all market regimes—"
-        "including the 2020 COVID crash, the 2022 bear market, and subsequent recoveries.",
-        style_body
+        "<i>Note:</i> Portfolios were constructed as unconstrained minimum-variance "
+        "(allowing short sales). This represents a theoretical benchmark; practical "
+        "implementations with long-only constraints would likely yield smaller but "
+        "directionally consistent improvements.",
+        style_body_small
     ))
     
     if IMAGES["heatmap"] and os.path.exists(IMAGES["heatmap"]):
         story.append(Image(IMAGES["heatmap"], width=6.8*inch, height=2.8*inch))
-        story.append(Paragraph("Figure 3: Portfolio volatility by method and market regime", style_caption))
+        story.append(Paragraph("Figure 3: Portfolio volatility by method and market regime (test set only)", style_caption))
     
-    story.append(Paragraph("Key Takeaways", style_section))
+    story.append(Paragraph("Principal Takeaways", style_section))
     takeaways = [
-        f"• The optimal shrinkage intensity (\u03bb*) is near-zero (mean = {lambda_mean:.2e}) for this 50-stock universe.",
-        "• The industry-standard Ledoit-Wolf estimator is the best choice for this dataset.",
-        "• Machine learning models did not improve performance—they simply predicted the mean.",
-        "• Reducing covariance estimation error does not always reduce portfolio volatility.",
+        f"• The optimal shrinkage intensity (\u03bb*) was near-zero (mean = {lambda_mean:.2e}) for this 50-stock universe, suggesting the sample covariance matrix was already well-conditioned.",
+        "• Ledoit-Wolf\u2014which uses a constant-correlation shrinkage target rather than identity\u2014was the best-performing method in both covariance accuracy and portfolio volatility.",
+        "• Machine learning models did not outperform baselines; they effectively predicted the historical mean.",
+        "• Reducing Frobenius distance did not guarantee reduced portfolio volatility, highlighting the distinction between statistical accuracy and economic utility.",
     ]
     for t in takeaways:
         story.append(Paragraph(t, style_bullet))
     
     story.append(Spacer(1, 0.02 * inch))
-    story.append(Paragraph("A Note on the Machine Learning Approach", style_section))
-    story.append(Paragraph(
-        "We framed this as a supervised learning problem, which is a standard approach in quantitative finance. "
-        "However, the machine learning models did not outperform the simplest baselines. "
-        "This is not a failure of the models—it is a reflection of the data. "
-        "When the target variable has near-zero variance, even the best model cannot find a signal.",
-        style_body_small
-    ))
+    story.append(Paragraph("Limitations and Caveats", style_section))
+    
+    caveats = [
+        "• The analysis is restricted to a 50-stock universe of large-cap U.S. equities; results may not generalize to other asset classes or geographies.",
+        "• Ledoit-Wolf uses a different shrinkage target (constant correlation) than the identity target used in the \u03bb* optimization, which explains some of its relative performance advantage.",
+        "• The portfolio construction is unconstrained; practical long-only implementations may see smaller volatility reductions.",
+        "• This is an empirical investigation, not a production-ready risk system. All results are out-of-sample but subject to the usual limitations of historical backtesting.",
+    ]
+    for c in caveats:
+        story.append(Paragraph(c, style_bullet))
     
     story.append(Spacer(1, 0.02 * inch))
     
     github_data = [
-        [Paragraph("<b>Open Source:</b> Full code, data pipeline, and results on GitHub", style_body)],
+        [Paragraph("<b>Open Source:</b> Full code, data pipeline, and results are available on GitHub", style_body)],
         [Paragraph("<font color='#1A3A5C'>https://github.com/kira-ml/regime-adaptive-covariance.git</font>", 
                    ParagraphStyle(
                        name="GitHubLink",
