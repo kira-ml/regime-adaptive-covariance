@@ -36,7 +36,7 @@ def portfolio_volatility(weights, cov_matrix):
     return np.sqrt(weights.T @ cov_matrix @ weights)
 
 
-def evaluate_portfolio_performance(window_data, lambdas_df, methods):
+def evaluate_portfolio_performance(window_data, lambdas_df, methods, returns_data=None):
     """
     Evaluate portfolio performance for different covariance estimators.
     
@@ -44,6 +44,7 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods):
     - window_data: list of dicts from compute_covariance_matrices()
     - lambdas_df: DataFrame with optimal lambdas
     - methods: dict of method_name -> (lambda_func, lambda_func_args)
+    - returns_data: pd.DataFrame of daily returns (optional, for Sharpe & drawdown)
     
     Returns:
     - DataFrame with portfolio metrics
@@ -52,6 +53,9 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods):
     
     for method_name, (lambda_func, func_kwargs) in methods.items():
         volatilities = []
+        turnovers = []
+        portfolio_returns = []  # For Sharpe and drawdown
+        prev_weights = None
         
         for idx, w in enumerate(window_data):
             S = w['S']
@@ -64,11 +68,6 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods):
             elif method_name == 'Constant':
                 lam = func_kwargs.get('lambda_const', 0.0)
             elif method_name == 'Ledoit-Wolf':
-                # Use the covariance matrix directly from sklearn
-                # We already have it from the baseline
-                lam = None
-                # Use the pre-computed LW covariance from window_data
-                # For now, we'll use LedoitWolf result from earlier
                 from sklearn.covariance import LedoitWolf
                 if 'train_returns' in w and w['train_returns'] is not None:
                     lw = LedoitWolf()
@@ -76,8 +75,8 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods):
                     cov_est = lw.covariance_
                 else:
                     cov_est = S
+                lam = None
             else:
-                # VIX threshold or other methods
                 lam = func_kwargs.get('lambda_pred', 0.0)
             
             if method_name != 'Ledoit-Wolf' and lam is not None:
@@ -86,18 +85,52 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods):
             # Compute minimum variance portfolio
             weights = minimum_variance_portfolio(cov_est)
             
-            # Compute realized volatility
+            # --- Realized volatility ---
             realized_cov = w['realized']
             vol = portfolio_volatility(weights, realized_cov)
             volatilities.append(vol)
+            
+            # --- Turnover ---
+            if prev_weights is not None:
+                turnover = np.sum(np.abs(weights - prev_weights))
+                turnovers.append(turnover)
+            prev_weights = weights.copy()
+            
+            # --- Portfolio returns (for Sharpe and drawdown) ---
+            if returns_data is not None:
+                test_start_idx = w['test_dates'][0]
+                test_end_idx = w['test_dates'][1]
+                period_returns = returns_data.loc[test_start_idx:test_end_idx]
+                daily_returns = period_returns.values @ weights
+                portfolio_returns.extend(daily_returns)
         
+        # --- Aggregate metrics ---
         mean_vol = np.mean(volatilities)
         std_vol = np.std(volatilities)
+        
+        mean_turnover = np.mean(turnovers) if turnovers else np.nan
+        
+        # Sharpe Ratio and Max Drawdown (if returns data available)
+        if returns_data is not None and portfolio_returns:
+            returns_series = np.array(portfolio_returns)
+            excess_returns = returns_series
+            sharpe = np.mean(excess_returns) / np.std(excess_returns) * np.sqrt(252)
+    
+            cumulative = np.cumprod(1 + returns_series)
+            running_max = np.maximum.accumulate(cumulative)
+            drawdown = (cumulative - running_max) / running_max
+            max_drawdown = drawdown.min()
+        else:
+            sharpe = np.nan
+            max_drawdown = np.nan
         
         results.append({
             'method': method_name,
             'mean_volatility': mean_vol,
             'std_volatility': std_vol,
+            'mean_turnover': mean_turnover,
+            'sharpe_ratio': sharpe,
+            'max_drawdown': max_drawdown,
             'n_windows': len(volatilities)
         })
     

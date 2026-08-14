@@ -52,7 +52,7 @@ def filter_windows_by_date(windows, returns, start_date, end_date):
     return indices
 
 
-def evaluate_sub_periods(window_data, lambdas_df, windows, returns, split_indices, methods):
+def evaluate_sub_periods(window_data, lambdas_df, windows, returns, split_indices, methods, returns_data=None):
     """
     Evaluate methods on each sub-period.
     
@@ -106,8 +106,9 @@ def evaluate_sub_periods(window_data, lambdas_df, windows, returns, split_indice
         # Evaluate methods on this period
         period_results = evaluate_portfolio_performance(
             window_data_period, 
-            lambdas_period, 
-            methods
+            lambdas_period,
+            methods, 
+            returns_data=returns_data
         )
         
         # Add period information

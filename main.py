@@ -301,7 +301,7 @@ def main():
             'Ledoit-Wolf': (None, {})
         }
         
-        portfolio_results = evaluate_portfolio_performance(window_data_test, lambdas_test, methods)
+        portfolio_results = evaluate_portfolio_performance(window_data_test, lambdas_test, methods, returns_data=returns)
         print(portfolio_results.to_string(index=False))
         
         # Save portfolio results (test set only)
@@ -382,7 +382,8 @@ def main():
     }
     
     sub_period_results = evaluate_sub_periods(
-        window_data, lambdas_df, windows, returns, split, methods
+        window_data, lambdas_df, windows, returns, split, methods,
+        returns_data=returns
     )
     
     if not sub_period_results.empty:
