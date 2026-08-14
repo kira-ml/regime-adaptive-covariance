@@ -88,13 +88,14 @@ def plot_frobenius_bar_chart(data):
     metrics = data["metrics"]
     
     # Hardcoded from your PDF/results for consistency
+    # Use final 50-stock results from statistical_tests.json
     frob_data = {
-        "Constant": 0.00785,
-        "VIX Threshold": 0.00785,
-        "Rolling Avg": 0.00785,
-        "Ledoit-Wolf": 0.00760,
-        "Elastic Net": 0.01214,
-        "XGBoost": 0.01214,
+        "Constant": data["stats"]["summary"]["mean_frobenius_constant"],
+        "VIX Threshold": data["stats"]["summary"]["mean_frobenius_constant"],
+        "Rolling Avg": data["stats"]["summary"]["mean_frobenius_constant"],
+        "Ledoit-Wolf": data["stats"]["summary"]["mean_frobenius_lw"],
+        "Elastic Net": data["stats"]["summary"]["mean_frobenius_constant"],
+        "XGBoost": data["stats"]["summary"]["mean_frobenius_constant"],
     }
     
     optimal_frob = metrics["mean_frobenius_optimal"]
