@@ -98,7 +98,7 @@ def plot_frobenius_bar_chart(data):
         "XGBoost": data["stats"]["summary"]["mean_frobenius_constant"],
     }
     
-    optimal_frob = metrics["mean_frobenius_optimal"]
+    optimal_frob = data["stats"]["summary"]["mean_frobenius_optimal"]
     
     fig, ax = plt.subplots(figsize=(10, 6))
     
