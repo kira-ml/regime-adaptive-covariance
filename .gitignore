@@ -25,10 +25,7 @@ wheels/
 MANIFEST
 
 # Jupyter Notebooks
-.ipynb_checkpoints
-*.ipynb_checkpoints
 .ipynb_checkpoints/
-*.ipynb_checkpoints/
 .pytest_cache/
 .coverage
 
@@ -44,13 +41,16 @@ data/
 *.db
 *.sqlite
 
-# Results
+# Results and outputs
 results/
 outputs/
 *.png
 *.jpg
 *.svg
 *.pdf
+
+# Track paper PDFs
+!paper/*.pdf
 
 # Environment variables
 .env
