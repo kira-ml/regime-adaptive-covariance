@@ -28,7 +28,7 @@ import numpy as np
 PROJECT_DIR = r"D:\quant-finance-ml\regime-adaptive-covariance"
 RESULTS_DIR = os.path.join(PROJECT_DIR, "results")
 FIGURES_DIR = os.path.join(RESULTS_DIR, "figures")
-OUTPUT_PDF = os.path.join(PROJECT_DIR, "paper", "project_report.pdf")
+OUTPUT_PDF = os.path.join(PROJECT_DIR, "paper", "regime_adaptive_covariance_shrinkage.pdf")
 
 # Ensure output directory exists
 os.makedirs(os.path.dirname(OUTPUT_PDF), exist_ok=True)
