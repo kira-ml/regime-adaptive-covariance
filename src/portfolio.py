@@ -77,7 +77,11 @@ def evaluate_portfolio_performance(window_data, lambdas_df, methods, returns_dat
                     cov_est = S
                 lam = None
             else:
-                lam = func_kwargs.get('lambda_pred', 0.0)
+                lam_pred = func_kwargs.get('lambda_pred', None)
+                if lam_pred is not None and isinstance(lam_pred, (list, np.ndarray)):
+                    lam = lam_pred[idx] if idx < len(lam_pred) else 0.0
+                else:
+                    lam = 0.0
             
             if method_name != 'Ledoit-Wolf' and lam is not None:
                 cov_est = (1 - lam) * S + lam * I
