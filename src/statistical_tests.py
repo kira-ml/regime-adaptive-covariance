@@ -7,6 +7,7 @@ from scipy import stats
 def diebold_mariano_test(e1, e2, h=1, one_sided=False):
     """
     Diebold-Mariano test for equal predictive accuracy.
+    Uses Newey-West variance estimator with Bartlett weights.
 
     Parameters
     ----------
@@ -34,31 +35,32 @@ def diebold_mariano_test(e1, e2, h=1, one_sided=False):
     d = e1 - e2  # loss differential
     d_bar = np.mean(d)
 
-    # Compute autocovariance up to lag h-1
+    # Newey-West variance estimator with Bartlett weights
     if h > 1:
-        # Simple Newey-West type correction
-        gamma = np.zeros(h)
-        for lag in range(h):
-            gamma[lag] = np.mean(d[:(n-lag)] * d[lag:])
-        var_d = gamma[0] + 2 * np.sum(gamma[1:])
+        max_lag = min(h - 1, n - 2)
+        if max_lag >= 1:
+            gamma = np.zeros(max_lag + 1)
+            for lag in range(max_lag + 1):
+                gamma[lag] = np.mean(d[:n-lag] * d[lag:]) if lag < n else 0
+            var_d = gamma[0]
+            for lag in range(1, max_lag + 1):
+                weight = 1 - lag / (max_lag + 1)  # Bartlett weight
+                var_d += 2 * weight * gamma[lag]
+        else:
+            var_d = np.var(d, ddof=1)
     else:
         var_d = np.var(d, ddof=1)
 
     if var_d <= 0:
-        # If variance is zero, no evidence of difference
         return {'statistic': 0.0, 'p_value': 1.0, 'h0': 'Equal predictive accuracy'}
 
     dm_stat = d_bar / np.sqrt(var_d / n)
-
-    # Degrees of freedom (n-1)
     df = n - 1
 
     if one_sided:
-        # H0: e1 <= e2 (model 1 not worse)
         p_value = stats.t.cdf(dm_stat, df)
         h0 = "Model 1 error <= Model 2 error"
     else:
-        # Two-sided: H0: e1 == e2
         p_value = 2 * (1 - stats.t.cdf(abs(dm_stat), df))
         h0 = "Equal predictive accuracy"
 

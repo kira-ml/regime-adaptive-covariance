@@ -98,11 +98,11 @@ class ElasticNetRegime:
         self.best_params_ = best_params
 
     def predict(self, X):
-        """Predict λ for given features."""
+        """Predict λ for given features, clipped to [0, 1]."""
         if self.model is None:
             raise ValueError("Model not fitted. Call fit() first.")
         X_scaled = self.scaler.transform(X)
-        return self.model.predict(X_scaled)
+        return np.clip(self.model.predict(X_scaled), 0.0, 1.0)
 
     def evaluate(self, X_test, y_test):
         """
@@ -173,7 +173,7 @@ def evaluate_elastic_net_on_covariance(window_data, lambdas_df, feature_cols, tr
         n = S.shape[0]
         I = np.eye(n)
         lam = y_pred[list(test_idx).index(idx)] if idx in test_idx else 0.0
-        lam = np.clip(lam, 0.0, 1.0)  # <-- ADD THIS LINE
+  
         S_est = (1 - lam) * S + lam * I
         frob_dists.append(frobenius_distance(S_est, realized))
 

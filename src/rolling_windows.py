@@ -114,11 +114,11 @@ def compute_regime_features(returns, vix, windows):
         avg_correlation = np.mean(corr_matrix[upper_tri_indices])
         
         # 5. Cross-sectional dispersion
-        cross_sectional_dispersion = window_returns.iloc[-1].std()
+        cross_sectional_dispersion = window_returns.std(axis=1).mean()
         
         # 6. Market return over window
-        market_return = (window_returns.mean(axis=1).iloc[-1] - 
-                        window_returns.mean(axis=1).iloc[0])
+        portfolio_series = window_returns.mean(axis=1)
+        market_return = (1 + portfolio_series).prod() - 1
         
         # 7. Maximum drawdown over window
         cumulative = (1 + window_returns.mean(axis=1)).cumprod()
@@ -129,7 +129,7 @@ def compute_regime_features(returns, vix, windows):
         # 8. Condition number of sample covariance
         S = window_returns.cov().values
         eigvals = np.linalg.eigvalsh(S)
-        condition_number = eigvals.max() / eigvals.min()
+        condition_number = eigvals.max() / max(eigvals.min(), 1e-12)
         
         # 9. Trace of sample covariance (total variance)
         trace = np.trace(S)

@@ -44,7 +44,11 @@ def main():
     END_DATE = '2025-01-01'
     WINDOW_SIZE = 120      # trading days (~6 months)
     HORIZON = 20           # trading days (~1 month)
-    LAMBDA_GRID = np.linspace(0, 0.2, 101)  # 0.00, 0.002, 0.004, ..., 0.20
+    # Fine grid near zero (0 to 0.05 in 0.001 steps), then coarse to 1.0
+    LAMBDA_GRID = np.concatenate([
+        np.linspace(0, 0.05, 51),     # 0, 0.001, 0.002, ..., 0.05
+        np.linspace(0.06, 1.0, 95)    # 0.06, 0.07, ..., 1.0
+    ])
     
     # Create directories
     os.makedirs('data/raw', exist_ok=True)
@@ -292,12 +296,34 @@ def main():
         window_data_test = [window_data[i] for i in test_indices]
         lambdas_test = lambdas_df.iloc[test_indices]
         
+        # Precompute VIX Threshold predictions
+        vix_levels_all = np.array([f['vix_level'] for f in features])
+        if 'threshold_low' in vix_metrics and 'threshold_high' in vix_metrics:
+            tl = vix_metrics['threshold_low']
+            th = vix_metrics['threshold_high']
+            train_idx = split['train']
+            train_lambdas = lambdas_df.iloc[train_idx]['lambda_opt'].values
+            train_vix = np.array([features[i]['vix_level'] for i in train_idx])
+            low_l = train_lambdas[train_vix < tl].mean() if np.any(train_vix < tl) else 0.0
+            mid_l = train_lambdas[(train_vix >= tl) & (train_vix < th)].mean() if np.any((train_vix >= tl) & (train_vix < th)) else 0.0
+            high_l = train_lambdas[train_vix >= th].mean() if np.any(train_vix >= th) else 0.0
+            vix_preds = np.array([low_l if v < tl else (mid_l if v < th else high_l) for v in vix_levels_all])
+        else:
+            vix_preds = np.full(len(window_data), 0.0)
+
+        # Precompute Rolling Average predictions
+        opt_lambdas = lambdas_df['lambda_opt'].values
+        rolling_preds = np.array([
+            np.mean(opt_lambdas[max(0, i-10):i]) if i > 0 else opt_lambdas[0]
+            for i in range(len(opt_lambdas))
+        ])
+
         # Define methods to evaluate (using test set only)
         methods = {
             'Optimal': (None, {}),
             'Constant': (None, {'lambda_const': lambda_const}),
-            'VIX Threshold': (None, {}),
-            'Rolling Average': (None, {}),
+            'VIX Threshold': (None, {'lambda_pred': vix_preds}),
+            'Rolling Average': (None, {'lambda_pred': rolling_preds}),
             'Ledoit-Wolf': (None, {})
         }
         
@@ -373,11 +399,12 @@ def main():
     from src.sub_period_analysis import evaluate_sub_periods, analyze_sub_period_results, plot_sub_period_comparison
     
     # Define methods for sub-period analysis
+    # Reuse vix_preds and rolling_preds computed earlier in the portfolio section
     methods = {
         'Optimal': (None, {}),
         'Constant': (None, {'lambda_const': lambda_const}),
-        'VIX Threshold': (None, {}),
-        'Rolling Average': (None, {}),
+        'VIX Threshold': (None, {'lambda_pred': vix_preds}),
+        'Rolling Average': (None, {'lambda_pred': rolling_preds}),
         'Ledoit-Wolf': (None, {})
     }
     
