@@ -87,7 +87,7 @@ regime-adaptive-covariance/
 │   └── *.csv / *.json            # Metrics and results files
 │
 └── paper/                        # Write-up
-    └── project_report.md
+    └── regime_adaptive_covariance_shrinkage.pdf
 ```
 
 ---
@@ -192,7 +192,7 @@ $$
 - Sub-period analysis
 
 **Statistical Tests:**
-- Diebold-Mariano test (pairwise forecast comparison)
+- Diebold-Mariano test (pairwise forecast comparison) with Newey-West correction
 - Bootstrap confidence intervals (volatility differences)
 
 ### 6. Experimental Design
@@ -210,9 +210,9 @@ Strict chronological split eliminates look-ahead bias.
 ### Core Empirical Finding
 A critical finding from this project is that **the optimal shrinkage intensity λ* is near-zero across all windows** in our 50-stock universe.
 
-- **Mean λ*:** 0.000034
-- **Standard deviation:** 0.000346
-- **Maximum λ*:** 0.004 (observed only during peak COVID volatility)
+- **Mean λ*:** 3.79e-05
+- **Standard deviation:** 0.000381
+- **Maximum λ*:** 0.005 (observed during peak COVID volatility)
 
 This means that for this dataset, **the sample covariance matrix is already well-conditioned**, and shrinkage toward the identity matrix provides little benefit. Consequently, the target variable has almost no variance to predict—rendering regime-adaptive shrinkage largely unnecessary.
 
@@ -222,8 +222,8 @@ This means that for this dataset, **the sample covariance matrix is already well
 
 | Set | RMSE | R² | Winner? |
 |-----|------|----|---------|
-| VIX-Only | 0.000530 | -0.0228 | 🏆 Best (simplest) |
-| All others | 0.000530 | -0.0228 | Tied |
+| VIX-Only | 0.000583 | -0.0233 | 🏆 Best (simplest) |
+| All others | 0.000583 | -0.0233 | Tied |
 
 **Conclusion:** VIX-Only is the best feature set. Additional engineered features did not improve prediction. All feature sets performed identically because the target λ* has near-zero variance.
 
@@ -235,7 +235,7 @@ This means that for this dataset, **the sample covariance matrix is already well
 |--------|---------------|-----------------|
 | Constant | 0.00785 | 0.010099 |
 | Ledoit-Wolf | **0.00760** | **0.008385** |
-| Optimal (oracle) | 0.00783 | 0.010286 |
+| Optimal (oracle) | 0.00783 | 0.010280 |
 | Elastic Net | 0.0121 | — |
 | XGBoost | 0.0121 | — |
 
@@ -247,8 +247,8 @@ This means that for this dataset, **the sample covariance matrix is already well
 
 | Model | RMSE (λ) | R² (λ) | Mean Frobenius |
 |-------|----------|--------|----------------|
-| Elastic Net | 0.000530 | -0.0228 | 0.0121 |
-| XGBoost | 0.000530 | -0.0228 | 0.0121 |
+| Elastic Net | 0.000583 | -0.0233 | 0.0121 |
+| XGBoost | 0.000583 | -0.0233 | 0.0121 |
 
 **Conclusion:** XGBoost performed identically to Elastic Net. This confirms that the limitation is not model linearity, but the inherent difficulty of predicting near-zero shrinkage intensities from market features.
 
@@ -258,13 +258,13 @@ This means that for this dataset, **the sample covariance matrix is already well
 
 | Test | Comparison | Statistic | p-value |
 |------|------------|-----------|---------|
-| Diebold-Mariano | Ledoit-Wolf vs Constant | -3.14 | **0.0017** |
-| Diebold-Mariano | Optimal vs Constant | -1.23 | 0.2187 |
+| Diebold-Mariano | Ledoit-Wolf vs Constant | -4.285 | **0.00002** |
+| Diebold-Mariano | Optimal vs Constant | -1.694 | 0.0906 |
 | Bootstrap | Ledoit-Wolf vs Constant (volatility) | -0.001713 | **0.0000** |
-| Bootstrap | Optimal vs Constant (volatility) | +0.000188 | 1.0000 |
+| Bootstrap | Optimal vs Constant (volatility) | +0.000181 | 1.0000 |
 
 **Conclusion:** 
-- Ledoit-Wolf significantly reduces Frobenius distance and portfolio volatility (p < 0.01).
+- Ledoit-Wolf significantly reduces Frobenius distance and portfolio volatility (p < 0.0001).
 - The "optimal" λ* (which minimizes Frobenius distance) does **not** reduce portfolio volatility—it actually increases it slightly.
 
 ---
@@ -286,7 +286,7 @@ This means that for this dataset, **the sample covariance matrix is already well
 
 | Criterion | Result | Status |
 |-----------|--------|--------|
-| Dynamic model beats Constant (p < 0.05) | Ledoit-Wolf: p = 0.0017 | ✅ Passed |
+| Dynamic model beats Constant (p < 0.05) | Ledoit-Wolf: p = 0.00002 | ✅ Passed |
 | ≥5% volatility reduction | ~17% reduction (0.010099 → 0.008385) | ✅ Passed |
 | Consistency across sub-periods | Ledoit-Wolf best in all 4 periods | ✅ Passed |
 | ML model improves over baselines | Elastic Net and XGBoost both underperformed | ⚠️ Failed (but documented) |
