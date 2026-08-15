@@ -42,9 +42,9 @@ This makes it a natural candidate for supervised learning—predict the optimal 
 
 A key finding from this project is that **the optimal shrinkage intensity λ* is near-zero across all windows** in our 50-stock universe.
 
-- **Mean λ*:** 0.000034
-- **Standard deviation:** 0.000346
-- **Maximum λ*:** 0.004 (observed only during peak COVID volatility)
+- **Mean λ*:** 3.79e-05
+- **Standard deviation:** 0.000381
+- **Maximum λ*:** 0.005 (observed only during peak COVID volatility)
 
 This means that for this dataset, **the sample covariance matrix is already well-conditioned**, and shrinkage toward the identity matrix provides little benefit. Consequently, the target variable has almost no variance to predict—rendering regime-adaptive shrinkage largely unnecessary.
 
@@ -133,7 +133,7 @@ Features must be **observable at time \(t\)** (no look-ahead).
 **H₂₀:** Dynamic shrinkage does not reduce mean Frobenius distance vs. constant shrinkage.  
 **H₂₁:** Dynamic shrinkage reduces mean Frobenius distance.
 
-**Test:** Diebold-Mariano test for pairwise forecast comparison.
+**Test:** Diebold-Mariano test for pairwise forecast comparison (with Newey-West correction).
 
 ### H3: Economic Significance
 **H₃₀:** Improved covariance estimation does not reduce portfolio volatility.  
@@ -222,8 +222,8 @@ To test whether a non-linear model could capture relationships missed by Elastic
 
 | Model | RMSE (λ) | R² (λ) | Mean Frobenius |
 |-------|----------|--------|----------------|
-| Elastic Net | 0.000530 | -0.0228 | 0.0121 |
-| XGBoost | 0.000530 | -0.0228 | 0.0121 |
+| Elastic Net | 0.000583 | -0.0233 | 0.0121 |
+| XGBoost | 0.000583 | -0.0233 | 0.0121 |
 
 **Result:** XGBoost performed identically to Elastic Net, achieving the same RMSE, R², and Frobenius distance. This confirms that the limitation is not model linearity, but the inherent difficulty of predicting near-zero shrinkage intensities from market features.
 
@@ -329,7 +329,7 @@ To test whether a non-linear model could capture relationships missed by Elastic
 - XGBoost robustness check.
 - Portfolio evaluation (test set only).
 - Sub-period analysis (4 test periods).
-- Statistical tests (Diebold-Mariano, bootstrap).
+- Statistical tests (Diebold-Mariano with Newey-West, bootstrap).
 
 ### What Will NOT Be Built
 - Production-grade MLOps infrastructure.
